@@ -440,8 +440,13 @@ aAuto();opAuto();
 
 // ---- Analyse de facture : IA directe (OpenRouter) + n8n pour Sheets ----
 var OPENROUTER_KEY = 'Bearer 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'; // <-- ta cle sk-or-v1-...
-var N8N_OCR_URL = 'https://n8n.srv1745823.hstgr.cloud/webhook/analyse-facture-ocr'; // analyse via Ollama local
-var N8N_SHEETS_URL = ''; // optionnel : webhook separe pour ecriture Sheets si besoin
+var N8N_SHEETS_URL = 'https://n8n.srv1745823.hstgr.cloud/webhook/analyse-facture-sheets'; // <-- URL webhook n8n ecriture Sheets
+var OPENROUTER_MODELS = [
+  'google/gemma-4-31b-it:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'nvidia/nemotron-nano-12b-v2-vl:free',
+  'nex-agi/nex-n2-pro:free'
+];
 var derniereAnalyse=null;
 var factureFichier=null;
 
@@ -472,11 +477,11 @@ function pdfToBase64Png(file,cb){
     var data=new Uint8Array(e.target.result);
     pdfjsLib.getDocument({data:data}).promise.then(function(pdf){
       pdf.getPage(1).then(function(page){
-        var vp=page.getViewport({scale:2.2});
+        var vp=page.getViewport({scale:2.0});
         var canvas=document.createElement('canvas');
         canvas.width=vp.width; canvas.height=vp.height;
         page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){
-          cb(null,canvas);
+          cb(null,canvas.toDataURL('image/png').split(',')[1],'image/png');
         });
       });
     }).catch(cb);
@@ -484,65 +489,10 @@ function pdfToBase64Png(file,cb){
   reader.readAsArrayBuffer(file);
 }
 
-function fileToImageElement(file,cb){
-  var img=new Image();
-  var url=URL.createObjectURL(file);
-  img.onload=function(){cb(null,img);};
-  img.onerror=function(){cb(new Error('Image illisible'));};
-  img.src=url;
-}
-
-// ---- Tesseract.js : OCR 100% gratuit, local, illimite ----
-var TESSERACT_LOADED=false;
-function loadTesseract(cb){
-  if(TESSERACT_LOADED){cb();return;}
-  var s=document.createElement('script');
-  s.src='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
-  s.onload=function(){TESSERACT_LOADED=true;cb();};
-  s.onerror=function(){cb(new Error('Impossible de charger Tesseract.js'));};
-  document.head.appendChild(s);
-}
-
-function runOCR(imageSource,cb){
-  loadTesseract(function(err){
-    if(err){cb(err);return;}
-    var status=document.getElementById('facture-status');
-    status.textContent='OCR en cours (lecture du texte)...';
-    Tesseract.recognize(imageSource,'fra',{
-      logger:function(m){
-        if(m.status==='recognizing text'){
-          status.textContent='OCR en cours... '+Math.round(m.progress*100)+'%';
-        }
-      }
-    }).then(function(result){
-      cb(null,result.data.text);
-    }).catch(cb);
-  });
-}
-
-// ---- Envoi du texte OCR a n8n (qui appelle Ollama local) ----
-function lancerAnalyseOCR(ocrText){
-  var status=document.getElementById('facture-status');
-  status.textContent='Structuration IA en cours (Ollama local)...';
-  fetch(N8N_OCR_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      texte_ocr: ocrText.substring(0,6000),
-      nom_fichier: factureFichier.name
-    })
-  }).then(function(r){
-    if(!r.ok)throw new Error('Erreur serveur ('+r.status+')');
-    return r.json();
-  }).then(function(data){
-    if(!Array.isArray(data.lignes))data.lignes=[];
-    if(data.erreur){status.textContent='Erreur : '+(data.message||'reponse non parsable');return;}
-    status.textContent='Analyse terminee. Modele : '+(data._model_used||'Ollama local');
-    derniereAnalyse=data;
-    afficherResultatFacture(data);
-  }).catch(function(err){
-    status.textContent='Erreur : '+err.message;
-  });
+function fileToBase64(file,cb){
+  var reader=new FileReader();
+  reader.onload=function(e){cb(null,e.target.result.split(',')[1],file.type||'image/jpeg');};
+  reader.readAsDataURL(file);
 }
 
 function analyserFacture(){
@@ -551,33 +501,108 @@ function analyserFacture(){
   document.getElementById('facture-resultat').innerHTML='';
   var isPdf=factureFichier.type==='application/pdf'||factureFichier.name.toLowerCase().endsWith('.pdf');
 
-  function lancerOCR(imageSource){
-    runOCR(imageSource,function(err,text){
-      if(err){status.textContent='Erreur OCR : '+err.message;return;}
-      if(!text||text.trim().length<10){
-        status.textContent='OCR n\'a extrait aucun texte lisible. Le scan est peut-etre trop flou.';
-        return;
-      }
-      lancerAnalyseOCR(text);
-    });
-  }
-
   if(isPdf){
     status.textContent='Conversion PDF en image...';
     loadPdfJs(function(){
       if(arguments[0] instanceof Error){status.textContent='Erreur : '+arguments[0].message;return;}
-      pdfToBase64Png(factureFichier,function(err,canvas){
+      pdfToBase64Png(factureFichier,function(err,b64,mime){
         if(err){status.textContent='Erreur PDF : '+err.message;return;}
-        lancerOCR(canvas);
+        lancerAnalyse(b64,mime);
       });
     });
   } else {
-    fileToImageElement(factureFichier,function(err,img){
-      if(err){status.textContent='Erreur : '+err.message;return;}
-      lancerOCR(img);
-    });
+    fileToBase64(factureFichier,function(err,b64,mime){lancerAnalyse(b64,mime);});
   }
 }
+
+
+
+// ---- Appel OpenRouter avec fallback automatique ----
+function buildSystemPrompt(){
+  // Toutes les mesures du referentiel, titres tronques pour limiter la taille du prompt
+  var mesuresList = referentiel.map(function(m){
+    return m.code+'='+m.titre.substring(0,38);
+  }).join('; ');
+
+  return "Tu analyses visuellement une image de facture fournisseur (peut etre un scan). "
+    + "Reponds UNIQUEMENT en JSON valide sans markdown, base UNIQUEMENT sur ce que tu vois, sans inventer. "
+    + "Schema : client, fournisseur, numero_facture, date_facture, mode_paiement, montant_ht_total, tva, montant_ttc (nombres ou null), "
+    + "lignes:[{designation, quantite, prix_unitaire_ht, montant_ht, mesure_suggeree}]. "
+    + "fournisseur = l\'entreprise qui EMET la facture (entete, ou apres \'Emis par\'). "
+    + "client = UNIQUEMENT le nom propre trouve apres le mot \'Destinataire\' ou \'Client\' (ignore les references ou numeros de facture juste au-dessus ou a cote, ne les inclus jamais dans le nom). "
+    + "ATTENTION lecture du tableau de lignes : repere bien chaque colonne (Description, Quantite, Unite, Prix unitaire HT, TVA%, montant TVA, Total TTC). "
+    + "Le montant_ht d\'une ligne = quantite x prix_unitaire_ht (ne confonds JAMAIS avec la colonne montant de TVA ni avec le Total TTC). "
+    + "Verifie que la somme des montant_ht des lignes correspond au montant_ht_total affiche sur la facture ; si ce n\'est pas le cas, recalcule. "
+    + "Cree une ligne des qu\'un libelle est associe a un montant, meme sans quantite explicite (alors quantite=1, prix_unitaire_ht=montant_ht). "
+    + "Pour mesure_suggeree : choisis le code le plus pertinent selon le SENS de la designation (pas juste un mot-cle litteral) dans ce referentiel officiel PO : "
+    + mesuresList
+    + " ; ou null si rien ne correspond clairement. "
+    + "Nombres en point decimal sans symbole monetaire. Null si information vraiment introuvable.";
+}
+
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+async function appelOpenRouter(b64,mimeType,modelIndex,attempt){
+  attempt=attempt||0;
+  if(modelIndex>=OPENROUTER_MODELS.length){
+    if(attempt<2){
+      var wait=(attempt+1)*8000;
+      document.getElementById('facture-status').textContent='Rate limit sur tous les modeles. Nouvelle tentative dans '+(wait/1000)+'s...';
+      await sleep(wait);
+      return appelOpenRouter(b64,mimeType,0,attempt+1);
+    }
+    throw new Error('Tous les modeles sont en rate limit (429). Reessayez dans quelques minutes.');
+  }
+  var model=OPENROUTER_MODELS[modelIndex];
+  document.getElementById('facture-status').textContent='Essai modele '+(modelIndex+1)+'/'+OPENROUTER_MODELS.length+' : '+model.split('/')[1]+'...';
+  try{
+    var resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Authorization':OPENROUTER_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:model,temperature:0,
+        response_format:{type:'json_object'},
+        messages:[
+          {role:'system',content:buildSystemPrompt()},
+          {role:'user',content:[
+            {type:'text',text:'Voici la facture. Extrait les informations au format JSON demande.'},
+            {type:'image_url',image_url:{url:'data:'+mimeType+';base64,'+b64}}
+          ]}
+        ]
+      })
+    });
+    if(resp.status===429){await sleep(3000);return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);}
+    if(resp.status===404){return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);}
+    if(!resp.ok){await sleep(2000);return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);}
+    var data=await resp.json();
+    var raw=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+    if(!raw){await sleep(2000);return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);}
+    var cleaned=raw.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+    var result=JSON.parse(cleaned);
+    result._model_used=model;
+    return result;
+  }catch(e){
+    await sleep(2000);
+    return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);
+  }
+}
+
+function lancerAnalyse(b64,mime){
+  appelOpenRouter(b64,mime,0,0).then(function(data){
+    data.nom_fichier=factureFichier.name;
+    data.date_analyse=new Date().toISOString();
+    if(!Array.isArray(data.lignes))data.lignes=[];
+    document.getElementById('facture-status').textContent='Analyse terminee. Modele : '+data._model_used;
+    derniereAnalyse=data;
+    afficherResultatFacture(data);
+    if(N8N_SHEETS_URL&&N8N_SHEETS_URL.indexOf('VOTRE')<0){
+      fetch(N8N_SHEETS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(function(){});
+    }
+  }).catch(function(err){
+    document.getElementById('facture-status').textContent='Erreur : '+err.message;
+  });
+}
+
 
 function buildProdOptions(selected){
   var prods=document.getElementById('a-prod').options;
