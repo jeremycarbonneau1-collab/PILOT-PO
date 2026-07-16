@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNI-VERT - Centre de pilotage PO</title>
+<style>
+  :root{--vert:#2E7D32;--vert-f:#1B5E20;--vert-cl:#E8F5E9;--vert-bg:#F1F8F2;--rouge:#C62828;--orange:#EF6C00;--bleu:#1565C0;--gris:#6b7280;--bord:#E2E8E4;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--vert-bg);color:#1f2a24;padding:16px;}
+  .wrap{max-width:1340px;margin:0 auto;}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:3px solid var(--vert);padding-bottom:12px;margin-bottom:14px;}
+  h1{color:var(--vert);font-size:21px;}
+  header .sub{color:var(--gris);font-size:12px;}
+  .tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;}
+  .tab{padding:9px 15px;border-radius:9px 9px 0 0;background:#dfe9e1;color:#4a5a50;font-size:13px;font-weight:600;cursor:pointer;border:none;}
+  .tab.active{background:#fff;color:var(--vert-f);box-shadow:0 -2px 6px rgba(0,0,0,.05);}
+  .panel{display:none;} .panel.active{display:block;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:16px;}
+  .kpi{background:#fff;border:1px solid var(--bord);border-radius:12px;padding:13px 15px;box-shadow:0 1px 3px rgba(0,0,0,.04);position:relative;overflow:hidden;}
+  .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--vert);}
+  .kpi.alert::before{background:var(--rouge);} .kpi.warn::before{background:var(--orange);}
+  .kpi .lab{font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:.03em;}
+  .kpi .val{font-size:21px;font-weight:700;color:var(--vert-f);margin-top:4px;}
+  .kpi.alert .val{color:var(--rouge);} .kpi .sub2{font-size:10px;color:var(--gris);margin-top:2px;}
+  .card{background:#fff;border:1px solid var(--bord);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:16px;}
+  .card h2{font-size:14px;color:var(--vert-f);margin-bottom:12px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;} @media(max-width:880px){.grid2{grid-template-columns:1fr;}}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{background:var(--vert);color:#fff;text-align:left;padding:7px 8px;font-weight:600;font-size:11px;position:sticky;top:0;cursor:pointer;user-select:none;}
+  td{padding:6px 8px;border-bottom:1px solid #eef2ee;}
+  tr:hover td{background:var(--vert-cl);}
+  .scroll{max-height:440px;overflow:auto;border:1px solid var(--bord);border-radius:8px;}
+  .bar-track{background:#eef2ee;border-radius:6px;height:15px;overflow:hidden;min-width:60px;}
+  .bar-fill{height:100%;border-radius:6px;transition:width .5s;}
+  .tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;white-space:nowrap;}
+  .tag.prio{background:#FFEBEE;color:var(--rouge);} .tag.surv{background:#FFF3E0;color:var(--orange);}
+  .tag.bon{background:var(--vert-cl);color:var(--vert-f);} .tag.dep{background:#FCE4EC;color:#AD1457;}
+  .mrow{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .mrow .code{width:46px;font-weight:600;font-size:12px;} .mrow .amt{width:90px;text-align:right;font-variant-numeric:tabular-nums;font-size:12px;}
+  .row{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;}
+  .field{display:flex;flex-direction:column;gap:4px;} .field label{font-size:11px;color:var(--gris);}
+  .field input,.field select{padding:7px 9px;border:1px solid var(--bord);border-radius:8px;font-size:13px;background:#fff;}
+  button{background:var(--vert);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  button:hover{background:var(--vert-f);} button.sec{background:#fff;color:var(--vert);border:1px solid var(--vert);}
+  button.danger{background:#fff;color:var(--rouge);border:1px solid var(--rouge);} button.mini{padding:3px 8px;font-size:11px;}
+  .note{font-size:12px;color:var(--gris);margin-top:8px;line-height:1.5;}
+  .foot{text-align:center;color:var(--gris);font-size:12px;margin-top:18px;}
+  .saved{font-size:11px;color:var(--vert);opacity:0;transition:opacity .3s;} .saved.show{opacity:1;}
+  .editable{background:#fffef5;cursor:pointer;}
+  .drop{border:2px dashed var(--vert);border-radius:10px;padding:20px;text-align:center;color:var(--gris);font-size:13px;cursor:pointer;background:var(--vert-cl);}
+  .drop.over{background:#d7ecd9;}
+  .pill{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;background:var(--vert-cl);color:var(--vert-f);margin-left:6px;}
+  .actionbox{padding:10px 12px;border-radius:9px;margin-bottom:9px;font-size:13px;border-left:4px solid var(--orange);background:#FFF8F0;}
+  .actionbox.dep{border-left-color:var(--rouge);background:#FFF2F2;}
+  .actionbox b{color:var(--vert-f);}
+  .gauge{height:26px;border-radius:13px;background:#eef2ee;overflow:hidden;position:relative;margin:8px 0;}
+  .gauge-fill{height:100%;background:linear-gradient(90deg,#2E7D32,#66BB6A);display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-size:12px;font-weight:600;}
+  .target{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--rouge);}
+  .proj{display:flex;gap:14px;flex-wrap:wrap;}
+  .proj .box{flex:1;min-width:160px;background:var(--vert-cl);border-radius:10px;padding:12px 14px;}
+  .proj .box .t{font-size:11px;color:var(--gris);} .proj .box .v{font-size:18px;font-weight:700;color:var(--vert-f);margin-top:3px;}
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;}
+  .modal.show{display:flex;}
+  .modal-box{background:#fff;border-radius:14px;padding:22px;max-width:560px;width:92%;max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.2);}
+  .modal-box h3{color:var(--vert-f);margin-bottom:14px;font-size:16px;}
+  .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .alertbox{padding:10px 13px;border-radius:9px;background:#FFEBEE;color:var(--rouge);font-size:13px;font-weight:600;margin-top:8px;border-left:4px solid var(--rouge);}
+  .okbox{padding:10px 13px;border-radius:9px;background:var(--vert-cl);color:var(--vert-f);font-size:13px;margin-top:8px;border-left:4px solid var(--vert);}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+</style>
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>Centre de pilotage du Programme Operationnel <span class="pill">v2</span></h1>
+      <div class="sub">SCA UNI-VERT &middot; FO 2025-2029 &middot; ref. FranceAgriMer 30FL2093 &middot; gestionnaire : Vanessa Chabalier</div></div>
+    <div style="text-align:right"><div class="sub" id="today"></div><div class="saved" id="saved">Enregistre</div><div class="sub" id="sync-badge" style="font-size:10px"></div></div>
+  </header>
+  <div class="tabs">
+    <button class="tab active" data-p="synth">Synthese</button>
+    <button class="tab" data-p="relance">Plan de relance</button>
+    <button class="tab" data-p="analyse">Analyser une facture</button>
+    <button class="tab" data-p="dep">Depenses</button>
+    <button class="tab" data-p="op">Depenses OP</button>
+    <button class="tab" data-p="prod">Producteurs</button>
+    <button class="tab" data-p="mac">Dossier FranceAgriMer</button>
+    <button class="tab" data-p="data">Donnees</button>
+    <button class="tab" data-p="ref">Referentiel PO</button>
+  </div>
+
+  <div class="panel active" id="p-synth">
+    <div class="kpis" id="kpis"></div>
+    <div class="card"><h2>Atterrissage du fonds &mdash; projection</h2>
+      <div class="gauge"><div class="gauge-fill" id="gauge"></div><div class="target" id="target"></div></div>
+      <div class="proj" id="proj"></div></div>
+    <div class="grid2">
+      <div class="card"><h2>Sous-totaux par producteur</h2>
+        <div class="scroll"><table><thead><tr><th data-s="nom">Producteur</th><th data-s="dot">Dotation</th><th data-s="conso">Conso</th><th data-s="solde">Solde</th><th data-s="taux">Statut</th></tr></thead><tbody id="tb-prod"></tbody></table></div></div>
+      <div class="card"><h2>Sous-totaux par mesure</h2>
+        <div class="scroll"><table><thead><tr><th>Mesure</th><th>Intitule</th><th>Nb</th><th>FO consomme</th></tr></thead><tbody id="tb-synthmes"></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-relance">
+    <div class="card"><h2>Plan de relance priorise <span class="pill">automatique</span></h2>
+      <div class="note" style="margin-bottom:12px">Classement par enjeu (solde a engager x retard de consommation). Le parametrage : un producteur apparait s'il a consomme moins de 80% de sa dotation ; il est marque prioritaire sous 50%. Commencez par le haut.</div>
+      <div id="relance-list"></div></div>
+  </div>
+
+  <div class="panel" id="p-analyse">
+    <div class="card"><h2>1. Import PDF/Image - Analyse automatique (OCR + IA)</h2>
+      <div class="note" style="margin-bottom:10px">Deposez une facture (image ou PDF). Elle est envoyee a l'agent IA via n8n, qui renvoie les informations extraites (fournisseur, n&deg; facture, date, lignes...). Verifiez puis cliquez sur "Utiliser cette ligne" pour la reporter dans le formulaire ci-dessous (encart 2), ou corrigez avant enregistrement.</div>
+      <div class="drop" id="facture-drop">Glissez une facture (image ou PDF), ou cliquez.<br><span class="note">Formats acceptes : JPG, PNG, PDF</span></div>
+      <input type="file" id="facture-file" accept="image/*,.pdf,application/pdf" style="display:none">
+      <div class="row" style="margin-top:10px;align-items:center">
+        <button onclick="analyserFacture()">Analyser avec l'IA</button>
+        <span id="facture-status" class="note"></span>
+      </div>
+      <div id="facture-resultat"></div>
+    </div>
+    <div class="card"><h2>2. Saisie manuelle (ou validation de la ligne extraite)</h2>
+      <div class="note" style="margin-bottom:10px">Utilisable seule pour une saisie 100% manuelle (sans facture a scanner), ou pre-remplie automatiquement depuis l'encart 1. Tous les champs du format officiel FranceAgrimer sont couverts ici.</div>
+      <div class="row">
+        <div class="field"><label>Producteur</label><select id="a-prod"></select></div>
+        <div class="field"><label>Mesure</label><select id="a-mes" onchange="aAuto()"></select></div>
+        <div class="field"><label>Code action</label><input id="a-code-action" placeholder="ex: a" style="width:70px"></div>
+        <div class="field"><label>Categorie de depenses</label><select id="a-categorie">
+          <option>Achat/Investissement du producteur</option>
+          <option>Credit bail du producteur</option>
+          <option>Forfaits</option>
+          <option>Frais de personnel sur l'exploitation</option>
+          <option>Location du producteur</option>
+          <option>Part en capital de l'annuite de remboursement d'emprunt producteur</option>
+          <option>Prestation de service du producteur</option>
+        </select></div>
+        <div class="field"><label>Designation</label><input id="a-des" placeholder="ex: plants greffes tomate"></div>
+        <div class="field"><label>Quantite</label><input type="number" id="a-qte" value="1" step="1"></div>
+        <div class="field"><label>Prix net HT</label><input type="number" id="a-pu" value="1000" step="10"></div>
+        <div class="field"><label>Escompte (%)</label><input type="number" id="a-escpct" value="0" step="0.5"></div>
+        <div class="field"><label>Taux FO %</label><input type="number" id="a-taux" value="40" step="0.5"></div>
+        <div class="field"><label>Mode de paiement</label><select id="a-paie"><option>Virement</option><option>Cheque</option><option>Prelevement</option><option>CB</option><option>Autre</option></select></div>
+        <div class="field"><label>Ligne RPD ?</label><select id="a-rpd"><option value="0">Non (eligible)</option><option value="1">Oui (RPD, non eligible)</option></select></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="field"><label>Emise par (fournisseur)</label><input id="a-fournisseur" placeholder="ex: BANQUE POPULAIRE"></div>
+        <div class="field"><label>N&deg; facture</label><input id="a-nfacture"></div>
+        <div class="field"><label>Date d'emission</label><input type="date" id="a-date-emission"></div>
+        <div class="field"><label>Date d'acquittement</label><input type="date" id="a-date-acq"></div>
+        <div class="field"><label>Montant TTC facture</label><input type="number" id="a-ttc-facture" step="0.01" placeholder="si vide : estime a HT x1.2"></div>
+        <div class="field"><label>Montant TTC regle</label><input type="number" id="a-ttc-paye" step="0.01" placeholder="si connu"></div>
+        <div class="field"><label>Commentaires</label><input id="a-commentaires"></div>
+      </div>
+      <div class="card" style="background:var(--vert-cl);margin-top:14px;margin-bottom:0"><div id="a-result" style="font-size:14px"></div>
+        <div id="a-alert"></div>
+        <button style="margin-top:10px" onclick="aSave()">Enregistrer cette ligne</button></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-dep">
+    <div class="card"><h2>Depenses enregistrees</h2>
+      <div class="filters">
+        <div class="field"><label>Filtrer par producteur</label><select id="flt-prod" onchange="renderDep()"><option value="">Tous</option></select></div>
+        <div class="field"><label>Filtrer par mesure</label><select id="flt-mes" onchange="renderDep()"><option value="">Toutes</option></select></div>
+        <button class="sec" onclick="document.getElementById('flt-prod').value='';document.getElementById('flt-mes').value='';renderDep();">Reinitialiser</button>
+      </div>
+      <div class="scroll"><table><thead><tr><th>Producteur</th><th>Mesure</th><th>Designation</th><th>HT</th><th>Taux</th><th>FO</th><th>Paiement</th><th></th></tr></thead><tbody id="tb-dep"></tbody></table></div>
+      <div class="note">Cliquez sur le crayon pour modifier une ligne, sur la croix pour la supprimer (avec confirmation).</div>
+      <div id="dep-totaux" class="card" style="background:var(--vert-cl);margin-top:10px;font-size:14px"></div></div>
+  </div>
+
+  <div class="panel" id="p-op">
+    <div class="card"><h2>Depenses OP (recurrentes : emprunts, credits-bails, annuites)</h2>
+      <div class="note" style="margin-bottom:12px">Depenses structurelles de l'OP, distinctes des factures producteurs. Saisissez-les ici pour qu'elles comptent dans le total engage. Pour reporter automatiquement une annuite N-1 sur N, dupliquez la ligne et changez l'annee.</div>
+      <div class="row">
+        <div class="field"><label>Producteur / OP</label><select id="op-prod"></select></div>
+        <div class="field"><label>Mesure</label><select id="op-mes" onchange="opAuto()"></select></div>
+        <div class="field"><label>Type</label><select id="op-type"><option>Annuite emprunt</option><option>Credit-bail</option><option>Autre recurrent</option></select></div>
+        <div class="field"><label>Designation</label><input id="op-des"></div>
+        <div class="field"><label>Montant HT</label><input type="number" id="op-ht" value="0" step="10"></div>
+        <div class="field"><label>Taux FO %</label><input type="number" id="op-taux" value="0" step="0.5"></div>
+        <button onclick="addOp()">Ajouter</button>
+      </div>
+      <div class="scroll" style="margin-top:12px"><table><thead><tr><th>Producteur</th><th>Type</th><th>Mesure</th><th>Designation</th><th>HT</th><th>FO</th><th></th></tr></thead><tbody id="tb-op"></tbody></table></div></div>
+  </div>
+
+  <div class="panel" id="p-prod">
+    <div class="card"><h2>Producteurs et dotation FO</h2>
+      <div class="row" style="margin-bottom:12px">
+        <div class="field"><label>Nom</label><input id="np-nom"></div>
+        <div class="field"><label>Email(s) (separes par ;)</label><input id="np-mail" placeholder="a@x.fr;b@y.fr"></div>
+        <div class="field"><label>Dotation 4,6%</label><input type="number" id="np-dot" value="40000"></div>
+        <button onclick="addProd()">Ajouter</button>
+      </div>
+      <div class="scroll"><table><thead><tr><th data-sp="nom">Producteur</th><th>Email(s)</th><th data-sp="dot">Dotation 4,6%</th><th>Dotation 4,1%</th><th>Deja engage</th><th>Modifier</th><th></th></tr></thead><tbody id="tb-prodedit"></tbody></table></div>
+      <div class="note">Cliquez sur le crayon pour modifier nom, emails et dotation. Suppression avec confirmation. Cliquez l'entete pour trier (alphabetique).</div></div>
+  </div>
+
+  <div class="panel" id="p-mac">
+    <div class="card"><h2>Vue MAC - consolidation par mesure (format FranceAgriMer)</h2>
+      <table><thead><tr><th>Code mesure</th><th>Intitule</th><th>Nb lignes</th><th>HT eligible</th><th>FO consomme</th></tr></thead><tbody id="tb-mac"></tbody>
+        <tfoot><tr style="font-weight:700;background:var(--vert-cl)"><td colspan="3">TOTAL</td><td id="mac-tht"></td><td id="mac-tfo"></td></tr></tfoot></table>
+      <div class="row" style="margin-top:14px"><button class="sec" onclick="exportCSV('mac')">Export Vue MAC (CSV)</button>
+        <button class="sec" onclick="exportEtatFAM()">Etat des depenses FranceAgriMer (CSV complet)</button>
+        <button onclick="exportEtatFAM_XLSX()">Etat des depenses FranceAgriMer (Excel .xlsx)</button></div>
+      <div class="note">L'etat FranceAgriMer reprend les colonnes officielles : Raison sociale, SIRET, Code mesure/action, Categorie, N facture, Date, Montant HT, Montant HT pris en charge FO, Montant TTC, Type de paiement.</div></div>
+  </div>
+
+  <div class="panel" id="p-data">
+    <div class="card"><h2>Importer (CSV)</h2>
+      <div class="drop" id="drop">Glissez un CSV, ou cliquez.<br><span class="note">Depenses : Producteur;Mesure;Designation;MontantHT;Escompte;Taux</span></div>
+      <input type="file" id="file" accept=".csv" style="display:none"><div class="note" id="import-status"></div></div>
+    <div class="card"><h2>Exporter / Sauvegarder</h2>
+      <div class="row">
+        <button class="sec" onclick="exportCSV('dep')">Depenses (CSV)</button>
+        <button class="sec" onclick="exportCSV('prod')">Producteurs (CSV)</button>
+        <button class="sec" onclick="exportJSON()">Sauvegarde complete (JSON)</button>
+        <label class="sec" style="display:inline-block;padding:8px 14px;border-radius:8px;cursor:pointer">Restaurer JSON<input type="file" id="restore" accept=".json" style="display:none"></label>
+      </div></div>
+    <div class="card"><h2>Maintenance</h2>
+      <div class="row"><button class="sec" onclick="reloadReal()">Recharger donnees reelles</button><button class="danger" onclick="wipe()">Tout effacer</button></div>
+      <div class="note">Donnees stockees dans ce navigateur uniquement. Faites une sauvegarde JSON reguliere.</div></div>
+  </div>
+
+  
+  <div class="panel" id="p-ref">
+    <div class="card">
+      <h2>Referentiel PO &mdash; Decision consolidee <span class="pill" id="ref-version">nov. 2025</span></h2>
+      <div class="note" style="margin-bottom:12px">Base de toutes les mesures eligibles au FO. L\'IA s\'appuie sur ce referentiel pour suggerer les codes mesures. Importez une nouvelle decision PDF pour le mettre a jour.</div>
+      <div class="drop" id="ref-drop" style="margin-bottom:10px">Glissez la nouvelle decision consolidee (PDF) ici pour mettre a jour le referentiel.<br><span class="note">Traitement local, aucune donnee envoyee.</span></div>
+      <input type="file" id="ref-file" accept=".pdf,application/pdf" style="display:none">
+      <div id="ref-import-status" class="note" style="margin-bottom:10px"></div>
+      <div class="filters">
+        <div class="field"><label>Recherche</label><input id="ref-search" placeholder="Code ou mot-cle..." style="min-width:200px" oninput="renderRef()"></div>
+        <div class="field"><label>Categorie</label><select id="ref-cat" onchange="renderRef()"><option value="">Toutes</option><option>Investissements</option><option>Production / Qualite</option><option>Environnement</option><option>Commercial / Gestion</option><option>Recherche / Experimentation</option><option>Retraits / Crises</option></select></div>
+        <span id="ref-count" class="note" style="align-self:flex-end"></span>
+      </div>
+      <div class="scroll" style="max-height:520px;margin-top:10px">
+        <table><thead><tr><th style="width:75px">Code</th><th>Intitule</th><th style="width:130px">Categorie</th><th style="width:80px">Taux FO</th><th>Depenses eligibles</th></tr></thead>
+        <tbody id="ref-tbody"></tbody></table>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="sec" onclick="exportRefCSV()">Exporter CSV</button>
+        <button class="sec" onclick="exportRefJSON()">Exporter JSON</button>
+      </div>
+      <div class="note" style="margin-top:8px">Le referentiel est sauvegarde dans ce navigateur. Un import PDF ecrase l\'ancienne version.</div>
+    </div>
+  </div>
+
+<div class="foot">Centre de pilotage v2 &middot; edition, filtres, controles de plafond, depenses OP, format FranceAgriMer &middot; donnees reelles FO 2026</div>
+</div>
+
+<div class="modal" id="modal"><div class="modal-box"><h3 id="modal-title"></h3><div id="modal-body"></div>
+  <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="sec" onclick="closeModal()">Annuler</button><button id="modal-ok">Confirmer</button></div></div></div>
+<script>
+const MESURES={"3.4.7":{lib:"Plants greffes",taux:40},"3.4.7c":{lib:"Plants greffes concombre",taux:37},"3.4.8":{lib:"Semences et plants particuliers",taux:50},"3.4.9":{lib:"Produits de biocontrole",taux:100},"2.16":{lib:"Chaine du froid / conservation",taux:90},"2.31":{lib:"Paillages et voiles",taux:55},"3.5.3":{lib:"Paillage vegetal maraichage",taux:34},"3.3.1":{lib:"Gestion eau exploitation",taux:15.5},"3.3.2":{lib:"Gestion eau station",taux:15.7},"3.7.1":{lib:"Economie d energie",taux:15.7},"3.7.2":{lib:"Energies renouvelables",taux:100},"1.26":{lib:"Materiel assistance production",taux:0},"1.29":{lib:"Serres et abris",taux:0},"1.30":{lib:"Gestion ressource en eau",taux:0},"1.33":{lib:"Tri, stockage, conditionnement",taux:0},"2.21":{lib:"Demarches qualite",taux:0},"3.2.1":{lib:"Production integree",taux:0}};
+// Intitule d'une mesure : cherche en priorite dans le referentiel PO (95 mesures), puis dans MESURES (raccourcis),
+// et ne renvoie jamais une chaine vide (fallback = le code lui-meme) pour eviter les intitules manquants dans les onglets/exports.
+function libMesure(code){
+  if(!code)return '';
+  if(typeof referentiel!=='undefined'&&referentiel&&referentiel.length){
+    var m=referentiel.find(function(r){return r.code===code;});
+    if(m&&m.titre)return m.titre;
+  }
+  if(MESURES[code]&&MESURES[code].lib)return MESURES[code].lib;
+  return code;
+}
+const KEY="univert_po_v2_annuites";
+// ---- Synchronisation serveur (Google Sheets via n8n) ----
+// Etat partage entre tous les utilisateurs : chaque save() pousse l'etat complet ;
+// au chargement, on tente de recuperer l'etat serveur (source de verite) avant de retomber sur le localStorage.
+const N8N_PO_STATE_URL="https://n8n.srv1745823.hstgr.cloud/webhook/po2026-api";
+let syncTimer=null, syncEnCours=false, dernierSyncOk=null;
+function setSyncBadge(txt,ok){
+  var e=document.getElementById('sync-badge');
+  if(!e)return;
+  e.textContent=txt;
+  e.style.color = ok===false ? '#C62828' : ok===true ? '#2E7D32' : '#6b7280';
+}
+function syncStateToServer(){
+  // debounce : evite de spammer le webhook a chaque frappe/edit rapide
+  if(syncTimer)clearTimeout(syncTimer);
+  syncTimer=setTimeout(function(){
+    syncEnCours=true; setSyncBadge('Synchronisation...');
+    fetch(N8N_PO_STATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'save_state',Key:'po2026',JSON:JSON.stringify(state),UpdatedAt:new Date().toISOString()})
+    }).then(function(r){
+      syncEnCours=false;
+      if(r.ok){dernierSyncOk=new Date();setSyncBadge('Synchronise a '+dernierSyncOk.toLocaleTimeString('fr-FR'),true);}
+      else{setSyncBadge('Erreur de synchronisation ('+r.status+')',false);}
+    }).catch(function(){syncEnCours=false;setSyncBadge('Hors ligne - sauvegarde locale uniquement',false);});
+  },1200);
+}
+const CAMPAGNE_ID="C2026";
+// Correspondance code interne de l'app <-> raison sociale officielle FranceAgrimer.
+// L'app continue d'utiliser les codes en interne (menus, matching) ; seul l'echange avec le
+// Google Sheet traduit vers/depuis la raison sociale, qui est le Producteur_ID canonique cote Sheet.
+const RAISON_SOCIALE={
+  "AAURI-BIO":"SCEA AURI-BIO","ABAGNOLET":"EARL BAGNOLET","ABOISJOLI":"EARL LE BOIS JOLI",
+  "ACAPIC":"SCA CAPIC","ACHARCHAR":"G.F.A. LES CHARDONS","ACHARSOUR":"EARL LA SOURCE DU LEVANT",
+  "ACOTESDESBARR":"SARL COTES DES BARRES","ADEUXCOLL":"SCEA LES DEUX COLLINES","AFONTAINE":"EARL LA FONTAINE",
+  "ANANIA":"EARL NANIA","APIMPOUNE":"EARL PIMPOUNE CHARENTON","ASALEILLES":"EARL SALEILLES",
+  "ASTVICTOR":"EARL SAINT VICTOR","ATCHOUKOU":"EARL TCHOUKOUMBE"
+};
+var RAISON_TO_CODE={}; Object.keys(RAISON_SOCIALE).forEach(function(c){RAISON_TO_CODE[RAISON_SOCIALE[c]]=c;});
+function idSheet(code){return RAISON_SOCIALE[code]||code;} // code app -> Producteur_ID envoye au Sheet
+function idApp(raison){return RAISON_TO_CODE[raison]||raison;} // Producteur_ID du Sheet -> code app
+function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);}
+// Meta de la derniere facture analysee par l'IA (fournisseur/numero/date), reinitialisee a chaque nouveau depot de fichier.
+var factureMeta=null;
+function fmtDateFR(s){
+  // accepte 'YYYY-MM-DD' ou deja 'JJ/MM/AAAA' ; renvoie JJ/MM/AAAA ou tel quel si non reconnu
+  if(!s)return '';
+  var m=(''+s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m)return m[3]+'/'+m[2]+'/'+m[1];
+  return s;
+}
+// Ecrit/actualise une ligne dans l'onglet Depenses (schema officiel FranceAgriMer). N'attend pas la reponse (fire-and-forget).
+function syncDepenseRow(d,origine){
+  if(!d.id)d.id=uid('D');
+  var fo=foOf(d);
+  var ttc=d.ttcFacture!=null?d.ttcFacture:Math.round(d.ht*1.2*100)/100;
+  var payload={action:'add_depense',
+    Depense_ID:d.id, Producteur_ID:idSheet(d.prod), Campagne_ID:CAMPAGNE_ID, Origine:origine,
+    Code_Mesure:d.mes, Code_action:d.codeAction||'', Categorie_depenses:d.categorie||libMesure(d.mes),
+    Emise_par:d.fournisseur||(factureMeta&&factureMeta.fournisseur)||'', N_facture:d.nfacture||(factureMeta&&factureMeta.numero)||'',
+    Date_emission:fmtDateFR(d.dateEmission)||fmtDateFR(factureMeta&&factureMeta.date), Montant_HT_facture:d.ht,
+    Montant_HT_pris_en_charge_FO:fo, Montant_TTC_facture:ttc,
+    Type_paiement:d.paie||d.type||'', Date_acquittement:fmtDateFR(d.dateAcq), Montant_TTC_paye:d.ttcPaye!=null?d.ttcPaye:'',
+    Montant_total_action_producteur:fo, Objet_depense:d.des||'', Commentaires:d.commentaires||(origine==='obligatoire'?'Depense OP (recurrente)':'')};
+  fetch(N8N_PO_STATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){});
+}
+// Ecrit/actualise une ligne dans l'onglet Producteurs.
+function syncProducteurRow(p){
+  var payload={action:'add_producteur',
+    Producteur_ID:idSheet(p.nom), Raison_sociale:idSheet(p.nom), Nom_gerant:'', Prenom_gerant:'',
+    Adresse:'', Code_postal:'', Commune:'', SIRET:'', N_PACAGE:''};
+  fetch(N8N_PO_STATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){});
+  syncEnveloppeRow(p);
+}
+// Ecrit/actualise l'enveloppe (dotation) d'un producteur dans l'onglet Enveloppes.
+function syncEnveloppeRow(p){
+  var payload={action:'add_enveloppe',
+    Enveloppe_ID:'E_'+idSheet(p.nom), Producteur_ID:idSheet(p.nom), Campagne_ID:CAMPAGNE_ID,
+    Montant_enveloppe:p.dot||0,
+    Commentaires:'Dotation 4,1%: '+(p.dot41||0)+' / Deja engage (import initial): '+(p.consoInit||0)};
+  fetch(N8N_PO_STATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){});
+}
+// Charge l'etat complet depuis les onglets Producteurs/Enveloppes/Depenses (source de verite si des donnees
+// y ont ete deposees directement dans le Sheet, ex. import CSV, sans passer par l'app).
+function normRows(arr){return (arr||[]).map(function(x){return (x&&x.json)?x.json:x;});}
+function loadFromSheetsGranular(cb){
+  Promise.all([
+    fetch(N8N_PO_STATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_producteurs'})}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];}),
+    fetch(N8N_PO_STATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_enveloppes'})}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];}),
+    fetch(N8N_PO_STATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_depenses'})}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];})
+  ]).then(function(results){
+    var rprod=normRows(results[0]), renv=normRows(results[1]), rdep=normRows(results[2]);
+    if(!rprod.length&&!rdep.length&&!renv.length){cb(false);return;}
+    var envByProd={};
+    renv.forEach(function(e){if(!e.Campagne_ID||e.Campagne_ID===CAMPAGNE_ID)envByProd[idApp(e.Producteur_ID)]=parseFloat(e.Montant_enveloppe)||0;});
+    var known={};
+    var prods=rprod.filter(function(p){return p.Producteur_ID;}).map(function(p){var code=idApp(p.Producteur_ID);known[code]=true;
+      return {nom:code,mail:'',dot:envByProd[code]||0,dot41:0,consoInit:0,
+        nomGerant:p.Nom_gerant||'',prenomGerant:p.Prenom_gerant||'',adresse:p.Adresse||'',
+        cp:p.Code_postal||'',commune:p.Commune||'',siret:p.SIRET||'',pacage:p.N_PACAGE||''};});
+    Object.keys(envByProd).forEach(function(id){if(!known[id]){prods.push({nom:id,mail:'',dot:envByProd[id],dot41:0,consoInit:0});known[id]=true;}});
+    rdep.forEach(function(d){var code=idApp(d.Producteur_ID);if(code&&!known[code]){prods.push({nom:code,mail:'',dot:0,dot41:0,consoInit:0});known[code]=true;}});
+    var deps=[],ops=[];
+    rdep.forEach(function(d){
+      if(!d.Depense_ID&&!d.Producteur_ID)return;
+      if(d.Campagne_ID&&d.Campagne_ID!==CAMPAGNE_ID)return;
+      var ht=parseFloat(d.Montant_HT_facture)||0, fo=parseFloat(d.Montant_HT_pris_en_charge_FO)||0;
+      var taux=ht>0?Math.round((fo/ht)*10000)/100:0;
+      var obj={id:d.Depense_ID,prod:idApp(d.Producteur_ID),mes:d.Code_Mesure||'',des:d.Objet_depense||'',ht:ht,esc:0,escpct:0,taux:taux,paie:d.Type_paiement||'',foFixe:fo};
+      deps.push(obj); // toutes les lignes de l'onglet Depenses vont dans la liste "Depenses" de l'app ; "Depenses OP" reste un sujet a part, non reconstruit ici
+    });
+    state={prods:prods,deps:deps,ops:ops};
+    try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+    setSyncBadge('Onglets charges : '+prods.length+' producteurs, '+deps.length+' dep., '+ops.length+' OP',true);
+    cb(true);
+  }).catch(function(){setSyncBadge('Erreur de chargement des onglets',false);cb(false);});
+}
+function loadStateFromServer(cb){
+  fetch(N8N_PO_STATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'load_state',Key:'po2026'})
+  }).then(function(r){return r.ok?r.json():Promise.reject(r.status);})
+  .then(function(rows){
+    // get_suivi / load_state renvoie un tableau de lignes (format n8n Google Sheets "read")
+    var row=Array.isArray(rows)?rows.find(function(x){return x.Key==='po2026'||(x.json&&x.json.Key==='po2026');}):null;
+    var raw=row&&(row.JSON||(row.json&&row.json.JSON));
+    if(raw){
+      var srv=JSON.parse(raw);
+      if(!srv.ops)srv.ops=[];
+      state=srv; try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+      setSyncBadge('Donnees serveur chargees',true);
+      cb(true);
+    } else { setSyncBadge('Aucune donnee serveur - utilisation locale',null); cb(false); }
+  }).catch(function(){setSyncBadge('Hors ligne - utilisation des donnees locales',false);cb(false);});
+}
+const seedProd=[{"nom":"AABOUYAZID","mail":"","dot":3321,"dot41":2960,"consoInit":0},{"nom":"SCEA AURI-BIO","mail":"","dot":31678,"dot41":28235,"consoInit":16561},{"nom":"EARL BAGNOLET","mail":"","dot":78667,"dot41":70117,"consoInit":1160},{"nom":"EARL LE BOIS JOLI","mail":"","dot":49190,"dot41":43844,"consoInit":4728},{"nom":"SCA CAPIC","mail":"","dot":535795,"dot41":477557,"consoInit":171810},{"nom":"G.F.A. LES CHARDONS","mail":"","dot":31039,"dot41":27665,"consoInit":15123},{"nom":"EARL LA SOURCE DU LEVANT","mail":"","dot":90392,"dot41":80567,"consoInit":12891},{"nom":"ACHAYGILLES","mail":"","dot":14342,"dot41":12783,"consoInit":0},{"nom":"ACOMBE","mail":"","dot":9327,"dot41":8313,"consoInit":0},{"nom":"SARL COTES DES BARRES","mail":"","dot":36741,"dot41":32748,"consoInit":13440},{"nom":"ADELORME","mail":"","dot":35470,"dot41":31614,"consoInit":0},{"nom":"SCEA LES DEUX COLLINES","mail":"","dot":52369,"dot41":46676,"consoInit":22923},{"nom":"AECPRODUCTION","mail":"","dot":30893,"dot41":27535,"consoInit":0},{"nom":"AESCANDNICOLA","mail":"","dot":16018,"dot41":10623,"consoInit":0},{"nom":"EARL LA FONTAINE","mail":"","dot":55250,"dot41":49245,"consoInit":8709},{"nom":"ALEVERGERDECL","mail":"","dot":4100,"dot41":3654,"consoInit":0},{"nom":"AMANZONE","mail":"","dot":7193,"dot41":6411,"consoInit":0},{"nom":"AMASDURIEU","mail":"","dot":21126,"dot41":18830,"consoInit":0},{"nom":"AMOREAPRODUCT","mail":"","dot":128657,"dot41":114673,"consoInit":0},{"nom":"EARL NANIA","mail":"","dot":63207,"dot41":56337,"consoInit":44996},{"nom":"ANEGRIER","mail":"","dot":5809,"dot41":5177,"consoInit":0},{"nom":"EARL PIMPOUNE CHARENTON","mail":"","dot":15855,"dot41":14132,"consoInit":4756},{"nom":"EARL SALEILLES","mail":"","dot":8597,"dot41":7663,"consoInit":4285},{"nom":"ASOURCE","mail":"","dot":54644,"dot41":48705,"consoInit":0},{"nom":"EARL SAINT VICTOR","mail":"","dot":109268,"dot41":97391,"consoInit":17067},{"nom":"EARL TCHOUKOUMBE","mail":"","dot":29407,"dot41":26211,"consoInit":2672},{"nom":"AVIDALBERTRAN","mail":"","dot":9744,"dot41":8685,"consoInit":0},{"nom":"AVIDOT","mail":"","dot":12094,"dot41":10779,"consoInit":0},{"nom":"France GRENADE","mail":"","dot":2693,"dot41":2400,"consoInit":0},{"nom":"France GRENADE","mail":"","dot":2693,"dot41":2400,"consoInit":0}];
+const seedOps=[{"prod":"EARL LA FONTAINE","mes":"1.26","type":"Annuite emprunt","des":"Annuite FO 2026 - EURO AGRI MAT (fact 210354)","ht":3315.84,"esc":0,"taux":100},{"prod":"EARL LA FONTAINE","mes":"1.29","type":"Annuite emprunt","des":"Annuite FO 2026 - FACT JEEM 102-2021-39380","ht":2900.12,"esc":0,"taux":100},{"prod":"EARL LA FONTAINE","mes":"1.29","type":"Annuite emprunt","des":"Annuite FO 2026 - FXT-102-2022-615","ht":1555.65,"esc":0,"taux":100},{"prod":"EARL LE BOIS JOLI","mes":"1.29","type":"Annuite emprunt","des":"Annuite FO 2026 - FCT-102-2020-35275","ht":2393.81,"esc":0,"taux":100},{"prod":"EARL NANIA","mes":"1.29","type":"Annuite emprunt","des":"Annuite FO 2026 - RICHEL GROUP 3866+4370+4371+4468+4780","ht":37599.69,"esc":0,"taux":100},{"prod":"EARL PIMPOUNE CHARENTON","mes":"1.29","type":"Annuite emprunt","des":"Annuite FO 2026 - CMF GROUPE - BNS -00006865","ht":3120.37,"esc":0,"taux":100},{"prod":"SCEA AURI-BIO","mes":"1.29","type":"Annuite emprunt","des":"Annuite FO 2026 - JEEM FXT-102-2022-606","ht":2141.25,"esc":0,"taux":100},{"prod":"SCA CAPIC","mes":"1.33","type":"Annuite emprunt","des":"Annuite FO 2026 - SORMAF + VDF (fact 22008103 + 101289)","ht":16331.48,"esc":0,"taux":100}];
+let state={prods:[],deps:[],ops:[]};
+let sortKey="taux",sortAsc=true,sortP="nom",sortPAsc=true;
+const Q=String.fromCharCode(39);
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}flash();syncStateToServer();}
+function loadState(){try{var s=localStorage.getItem(KEY);if(s){state=JSON.parse(s);if(!state.ops)state.ops=[];return true;}}catch(e){}return false;}
+function reloadReal(){confirmModal("Recharger les donnees reelles ?","Cela remplace les donnees actuelles par les 30 producteurs du fichier FO 2026 et vide les depenses.",function(){state={prods:JSON.parse(JSON.stringify(seedProd)),deps:[],ops:JSON.parse(JSON.stringify(seedOps))};save();renderAll();});}
+function wipe(){confirmModal("Tout effacer ?","Toutes les donnees seront supprimees. Cette action est irreversible.",function(){state={prods:[],deps:[],ops:[]};save();renderAll();});}
+function flash(){var e=document.getElementById('saved');e.classList.add('show');setTimeout(function(){e.classList.remove('show');},900);}
+function eur(n){return Math.round(n).toLocaleString('fr-FR')+" EUR";}
+function foOf(d){if(d.foFixe!=null)return d.foFixe;var esc=d.esc||0;return Math.round((d.ht-esc)*d.taux/100*100)/100;}
+function statusOf(t){return t<0.5?["Prioritaire","prio"]:t<0.8?["A surveiller","surv"]:t<=1?["Bon rythme","bon"]:["Depassement","dep"];}
+
+function allDeps(){return state.deps.concat(state.ops||[]);}
+function compute(){
+  var byProd=state.prods.map(function(p){var ci=p.consoInit||0;
+    var conso=ci+allDeps().filter(function(d){return d.prod===p.nom;}).reduce(function(s,d){return s+foOf(d);},0);
+    var taux=p.dot>0?conso/p.dot:0;
+    return {nom:p.nom,mail:p.mail,dot:p.dot,dot41:p.dot41||0,consoInit:ci,conso:conso,solde:p.dot-conso,taux:taux};});
+  var dotTot=state.prods.reduce(function(s,p){return s+p.dot;},0);
+  var dot41Tot=state.prods.reduce(function(s,p){return s+(p.dot41||0);},0);
+  var consoTot=byProd.reduce(function(s,p){return s+p.conso;},0);
+  var byMes={};allDeps().forEach(function(d){if(!byMes[d.mes])byMes[d.mes]={ht:0,fo:0,n:0};byMes[d.mes].ht+=d.ht;byMes[d.mes].fo+=foOf(d);byMes[d.mes].n++;});
+  return {byProd:byProd,dotTot:dotTot,dot41Tot:dot41Tot,consoTot:consoTot,solde:dotTot-consoTot,taux:dotTot?consoTot/dotTot:0,prio:byProd.filter(function(p){return p.taux<0.5&&p.dot>0;}).length,byMes:byMes};
+}
+function renderAll(){renderSynth();renderRelance();renderDep();renderOp();renderProdEdit();renderMac();fillSelects();}
+
+function renderSynth(){
+  var m=compute();
+  var k=[['Dotation FO (4,6%)',eur(m.dotTot),state.prods.length+' producteurs',''],
+    ['FO consomme',eur(m.consoTot),state.deps.length+' fact. + '+(state.ops?state.ops.length:0)+' OP',''],
+    ['Solde a engager',eur(m.solde),'',''],
+    ['Taux de consommation',(m.taux*100).toFixed(1)+'%','',m.taux<0.5?'alert':m.taux<0.8?'warn':''],
+    ['Producteurs prioritaires',m.prio,'sous-consommation <50%',m.prio>0?'alert':''],
+    ['Dotation alternative (4,1%)',eur(m.dot41Tot),'hypothese basse','']];
+  document.getElementById('kpis').innerHTML=k.map(function(x){return '<div class="kpi '+x[3]+'"><div class="lab">'+x[0]+'</div><div class="val">'+x[1]+'</div><div class="sub2">'+x[2]+'</div></div>';}).join('');
+  var pct=Math.min(m.taux*100,100);
+  document.getElementById('gauge').style.width=Math.max(pct,8)+'%';
+  document.getElementById('gauge').textContent=pct.toFixed(0)+'%';
+  document.getElementById('target').style.left='100%';
+  var pb=[['Engage a ce jour',eur(m.consoTot)],['Reste a engager',eur(m.solde)],['Pour atteindre 100%','engager '+eur(m.solde)],['Subvention en jeu sur le solde',eur(m.solde)]];
+  document.getElementById('proj').innerHTML=pb.map(function(b){return '<div class="box"><div class="t">'+b[0]+'</div><div class="v">'+b[1]+'</div></div>';}).join('');
+  var arr=m.byProd.slice().sort(function(a,b){var x=a[sortKey],y=b[sortKey];if(typeof x==='string'){return sortAsc?x.localeCompare(y):y.localeCompare(x);}return sortAsc?x-y:y-x;});
+  document.getElementById('tb-prod').innerHTML=arr.map(function(p){var st=statusOf(p.taux);var pc=Math.min(p.taux*100,100);
+    var col=p.taux<0.5?'#C62828':p.taux<0.8?'#EF6C00':'#2E7D32';
+    return '<tr><td>'+p.nom+'</td><td style="font-variant-numeric:tabular-nums">'+eur(p.dot)+'</td><td><div class="bar-track"><div class="bar-fill" style="width:'+pc+'%;background:'+col+'"></div></div><span style="font-size:10px;color:#6b7280"> '+(p.taux*100).toFixed(0)+'%</span></td><td style="font-variant-numeric:tabular-nums">'+eur(p.solde)+'</td><td><span class="tag '+st[1]+'">'+st[0]+'</span></td></tr>';
+  }).join('')||'<tr><td colspan="5" class="note">Aucun producteur.</td></tr>';
+  var ent=Object.entries(m.byMes).sort(function(a,b){return b[1].fo-a[1].fo;});
+  document.getElementById('tb-synthmes').innerHTML=ent.map(function(e){return '<tr><td><b>'+e[0]+'</b></td><td>'+libMesure(e[0])+'</td><td>'+e[1].n+'</td><td style="font-variant-numeric:tabular-nums;color:var(--vert);font-weight:600">'+eur(e[1].fo)+'</td></tr>';}).join('')||'<tr><td colspan="4" class="note">Aucune depense.</td></tr>';
+}
+
+function renderRelance(){
+  var m=compute();
+  var cible=m.byProd.filter(function(p){return p.taux<0.8&&p.dot>0;}).map(function(p){var o={};for(var k in p)o[k]=p[k];o.enjeu=p.solde*(1-p.taux);return o;});
+  cible.sort(function(a,b){return b.enjeu-a.enjeu;});
+  var dep=m.byProd.filter(function(p){return p.taux>1;});
+  var html=dep.map(function(p){return '<div class="actionbox dep"><b>DEPASSEMENT - '+p.nom+'</b> : regulariser '+eur(-p.solde)+' (consomme '+(p.taux*100).toFixed(0)+'%).</div>';}).join('');
+  html+=cible.map(function(p,i){return '<div class="actionbox"><b>'+(i+1)+'. '+p.nom+'</b> &mdash; consomme '+(p.taux*100).toFixed(0)+'%, reste <b>'+eur(p.solde)+'</b> a engager. '+(p.mail?'Email : '+p.mail:'<span style="color:#C62828">email manquant</span>')+'</div>';}).join('');
+  if(!html)html='<div class="note">Aucune relance necessaire : tous les producteurs sont a bon rythme.</div>';
+  document.getElementById('relance-list').innerHTML=html;
+}
+
+function renderDep(){
+  var fp=document.getElementById('flt-prod').value, fm=document.getElementById('flt-mes').value;
+  var idx=[];var rows=state.deps.map(function(d,i){return {d:d,i:i};}).filter(function(o){return (!fp||o.d.prod===fp)&&(!fm||o.d.mes===fm);});
+  document.getElementById('tb-dep').innerHTML=rows.map(function(o){var d=o.d,i=o.i;
+    return '<tr><td>'+d.prod+'</td><td>'+d.mes+'</td><td>'+(d.des||'')+'</td><td style="font-variant-numeric:tabular-nums">'+eur(d.ht)+'</td><td>'+d.taux+'%</td><td style="font-variant-numeric:tabular-nums;color:var(--vert);font-weight:600">'+eur(foOf(d))+'</td><td>'+(d.paie||'')+'</td><td><button class="mini sec" onclick="editDep('+i+')">crayon</button> <button class="mini danger" onclick="askDelDep('+i+')">X</button></td></tr>';
+  }).join('')||'<tr><td colspan="8" class="note">Aucune depense (ou filtre trop restrictif).</td></tr>';
+  // Totaux : selection courante (filtre producteur/mesure) + total general toutes lignes
+  var selHt=0,selFo=0; rows.forEach(function(o){selHt+=o.d.ht||0;selFo+=foOf(o.d);});
+  var totHt=0,totFo=0; state.deps.forEach(function(d){totHt+=d.ht||0;totFo+=foOf(d);});
+  var html='<b>Selection'+(fp?' ('+fp+')':'')+(fm?' - mesure '+fm:'')+'</b> : '+rows.length+' ligne(s) - HT '+eur(selHt)+' - FO '+eur(selFo);
+  if(fp||fm)html+='<br><b>Total general (toutes lignes)</b> : '+state.deps.length+' ligne(s) - HT '+eur(totHt)+' - FO '+eur(totFo);
+  document.getElementById('dep-totaux').innerHTML=html;
+}
+function renderOp(){
+  document.getElementById('tb-op').innerHTML=(state.ops||[]).map(function(d,i){
+    return '<tr><td>'+d.prod+'</td><td>'+(d.type||'')+'</td><td>'+d.mes+'</td><td>'+(d.des||'')+'</td><td style="font-variant-numeric:tabular-nums">'+eur(d.ht)+'</td><td style="font-variant-numeric:tabular-nums;color:var(--vert);font-weight:600">'+eur(foOf(d))+'</td><td><button class="mini danger" onclick="askDelOp('+i+')">X</button></td></tr>';
+  }).join('')||'<tr><td colspan="7" class="note">Aucune depense OP.</td></tr>';
+}
+function renderProdEdit(){
+  var arr=state.prods.map(function(p,i){return {p:p,i:i};});
+  arr.sort(function(a,b){var x=a.p[sortP],y=b.p[sortP];if(typeof x==='string')return sortPAsc?(''+x).localeCompare(''+y):(''+y).localeCompare(''+x);return sortPAsc?x-y:y-x;});
+  document.getElementById('tb-prodedit').innerHTML=arr.map(function(o){var p=o.p,i=o.i;
+    return '<tr><td>'+p.nom+'</td><td style="font-size:11px">'+(p.mail||'(aucun)')+'</td><td style="font-variant-numeric:tabular-nums">'+eur(p.dot)+'</td><td style="font-variant-numeric:tabular-nums">'+eur(p.dot41||0)+'</td><td style="font-variant-numeric:tabular-nums">'+eur(p.consoInit||0)+'</td><td><button class="mini sec" onclick="editProd('+i+')">crayon</button></td><td><button class="mini danger" onclick="askDelProd('+i+')">X</button></td></tr>';
+  }).join('')||'<tr><td colspan="7" class="note">Aucun producteur.</td></tr>';
+}
+function renderMac(){var m=compute();var ent=Object.entries(m.byMes).sort(function(a,b){return b[1].fo-a[1].fo;});
+  document.getElementById('tb-mac').innerHTML=ent.map(function(e){return '<tr><td><b>'+e[0]+'</b></td><td>'+libMesure(e[0])+'</td><td>'+e[1].n+'</td><td style="font-variant-numeric:tabular-nums">'+eur(e[1].ht)+'</td><td style="font-variant-numeric:tabular-nums;color:var(--vert);font-weight:600">'+eur(e[1].fo)+'</td></tr>';}).join('')||'<tr><td colspan="5" class="note">Aucune depense.</td></tr>';
+  document.getElementById('mac-tht').textContent=eur(ent.reduce(function(s,e){return s+e[1].ht;},0));
+  document.getElementById('mac-tfo').textContent=eur(ent.reduce(function(s,e){return s+e[1].fo;},0));}
+function fillSelects(){
+  var opt=state.prods.slice().sort(function(a,b){return a.nom.localeCompare(b.nom);}).map(function(p){return '<option>'+p.nom+'</option>';}).join('');
+  ['a-prod','op-prod'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML=opt;});
+  var fpo='<option value="">Tous</option>'+opt.replace(/<option>/g,'<option value="').replace(/<\/option>/g,'">x</option>');
+  // filtre producteur (valeur=texte)
+  var fp=document.getElementById('flt-prod');var cur=fp.value;
+  fp.innerHTML='<option value="">Tous</option>'+state.prods.slice().sort(function(a,b){return a.nom.localeCompare(b.nom);}).map(function(p){return '<option value="'+p.nom+'">'+p.nom+'</option>';}).join('');fp.value=cur;
+  // Mesures : utiliser referentiel complet si disponible, sinon MESURES codé en dur
+  var mesRef=(typeof referentiel!=='undefined'&&referentiel.length>0)?referentiel:Object.entries(MESURES).map(function(e){return {code:e[0],titre:e[1].lib,taux:e[1].taux+'%'};});
+  var mo=mesRef.map(function(m){return '<option value="'+m.code+'">'+m.code+' '+m.titre+(m.taux?' ('+m.taux+')':'')+'</option>';}).join('');
+  ['a-mes','op-mes'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML=mo;});
+  var fm=document.getElementById('flt-mes');var curm=fm.value;
+  fm.innerHTML='<option value="">Toutes</option>'+mesRef.map(function(m){return '<option value="'+m.code+'">'+m.code+'</option>';}).join('');fm.value=curm;
+}
+
+function aAuto(){
+  var c=document.getElementById('a-mes').value;
+  var t=null;
+  // Chercher d'abord dans MESURES codé en dur, puis dans referentiel
+  if(MESURES[c])t=MESURES[c].taux;
+  else if(typeof referentiel!=='undefined'){
+    var found=referentiel.find(function(m){return m.code===c;});
+    if(found&&found.taux){t=parseFloat(found.taux.replace('%','').replace(',','.'));}
+  }
+  document.getElementById('a-taux').value=(t==null?0:t);
+  aPrev();
+}
+function aPrev(){var qte=+document.getElementById('a-qte').value||0,pu=+document.getElementById('a-pu').value||0,escpct=+document.getElementById('a-escpct').value||0,t=+document.getElementById('a-taux').value||0,rpd=document.getElementById('a-rpd').value==='1';
+  var ht=qte*pu;var escMontant=Math.round(ht*escpct/100*100)/100;var base=ht-escMontant;var fo=rpd?0:Math.round(base*t/100*100)/100;
+  var plafond=Math.round(ht*t/100*100)/100;
+  var txt='Montant HT ligne = '+qte+' x '+eur(pu)+' = <b>'+eur(ht)+'</b><br>';
+  txt+='Escompte '+escpct+'% = '+eur(escMontant)+' -> base eligible '+eur(base)+'<br>';
+  if(rpd){txt+='<b style="color:#C62828">Ligne RPD : non eligible au FO.</b>';}
+  else{txt+='Prise en charge FO = '+eur(base)+' x '+t+'% = <b style="color:var(--vert);font-size:16px">'+eur(fo)+'</b>';}
+  document.getElementById('a-result').innerHTML=txt;
+  // controle plafond mesure forfaitaire
+  var al='';
+  if(!rpd&&fo>plafond+0.01){al+='<div class="alertbox">Attention : le montant FO depasse le plafond de la mesure ('+eur(plafond)+' = '+eur(ht)+' x '+t+'%).</div>';}
+  // controle depassement dotation producteur
+  var prodNom=document.getElementById('a-prod').value;var m=compute();var pr=m.byProd.find(function(p){return p.nom===prodNom;});
+  if(pr&&!rpd&&(pr.conso+fo)>pr.dot){al+='<div class="alertbox">Attention : cette ligne ferait depasser la dotation de '+prodNom+' ('+eur(pr.dot)+'). Solde actuel : '+eur(pr.solde)+'.</div>';}
+  document.getElementById('a-alert').innerHTML=al;
+}
+function aSave(){var qte=+document.getElementById('a-qte').value||0,pu=+document.getElementById('a-pu').value||0,escpct=+document.getElementById('a-escpct').value||0,rpd=document.getElementById('a-rpd').value==='1';
+  if(rpd){alert('Ligne RPD non eligible : non enregistree.');return;}
+  var ht=qte*pu;var escMontant=Math.round(ht*escpct/100*100)/100;
+  var prodNom=document.getElementById('a-prod').value;var t=+document.getElementById('a-taux').value||0;
+  var fo=Math.round((ht-escMontant)*t/100*100)/100;
+  var m=compute();var pr=m.byProd.find(function(p){return p.nom===prodNom;});
+  var doSave=function(){var nd={prod:prodNom,mes:document.getElementById('a-mes').value,des:document.getElementById('a-des').value.trim(),ht:ht,esc:escMontant,escpct:escpct,taux:t,paie:document.getElementById('a-paie').value,
+    codeAction:document.getElementById('a-code-action').value.trim(),
+    categorie:document.getElementById('a-categorie').value,
+    fournisseur:document.getElementById('a-fournisseur').value.trim(),
+    nfacture:document.getElementById('a-nfacture').value.trim(),
+    dateEmission:document.getElementById('a-date-emission').value,
+    dateAcq:document.getElementById('a-date-acq').value,
+    ttcFacture:document.getElementById('a-ttc-facture').value?+document.getElementById('a-ttc-facture').value:null,
+    ttcPaye:document.getElementById('a-ttc-paye').value?+document.getElementById('a-ttc-paye').value:null,
+    commentaires:document.getElementById('a-commentaires').value.trim()};
+    state.deps.push(nd);save();syncDepenseRow(nd,'facture_ocr');renderAll();alert('Ligne enregistree.');};
+  if(pr&&(pr.conso+fo)>pr.dot){confirmModal("Depassement de dotation",("Cette ligne porte la consommation de "+prodNom+" a "+eur(pr.conso+fo)+", au-dela de sa dotation ("+eur(pr.dot)+"). Enregistrer quand meme ?"),doSave);}
+  else doSave();
+}
+
+function opAuto(){var c=document.getElementById('op-mes').value;var t=(MESURES[c]||{}).taux;document.getElementById('op-taux').value=(t==null?0:t);}
+function addOp(){if(!state.ops)state.ops=[];var no={prod:document.getElementById('op-prod').value,mes:document.getElementById('op-mes').value,type:document.getElementById('op-type').value,des:document.getElementById('op-des').value.trim(),ht:+document.getElementById('op-ht').value||0,esc:0,taux:+document.getElementById('op-taux').value||0};state.ops.push(no);document.getElementById('op-des').value='';save();syncDepenseRow(no,'obligatoire');renderAll();}
+function askDelOp(i){confirmModal("Supprimer cette depense OP ?","Voulez-vous vraiment supprimer cette ligne ?",function(){state.ops.splice(i,1);save();renderAll();});}
+
+function addProd(){var n=document.getElementById('np-nom').value.trim();if(!n)return;var np={nom:n,mail:document.getElementById('np-mail').value.trim(),dot:+document.getElementById('np-dot').value||0,dot41:0,consoInit:0};state.prods.push(np);document.getElementById('np-nom').value='';document.getElementById('np-mail').value='';save();syncProducteurRow(np);renderAll();}
+function askDelProd(i){confirmModal("Supprimer ce producteur ?","Attention, souhaitez-vous vraiment supprimer "+state.prods[i].nom+" ? Ses depenses ne seront plus rattachees.",function(){state.prods.splice(i,1);save();renderAll();});}
+function editProd(i){var p=state.prods[i];
+  modalForm("Modifier "+p.nom,[
+    {id:'m-nom',lab:'Nom',val:p.nom},
+    {id:'m-mail',lab:'Email(s) (separes par ;)',val:p.mail||''},
+    {id:'m-dot',lab:'Dotation 4,6%',val:p.dot,num:true},
+    {id:'m-dot41',lab:'Dotation 4,1%',val:p.dot41||0,num:true},
+    {id:'m-ci',lab:'Deja engage',val:p.consoInit||0,num:true}
+  ],function(){p.nom=document.getElementById('m-nom').value.trim();p.mail=document.getElementById('m-mail').value.trim();p.dot=+document.getElementById('m-dot').value||0;p.dot41=+document.getElementById('m-dot41').value||0;p.consoInit=+document.getElementById('m-ci').value||0;save();syncProducteurRow(p);renderAll();});
+}
+function editDep(i){var d=state.deps[i];
+  modalForm("Modifier la ligne",[
+    {id:'e-des',lab:'Designation',val:d.des||''},
+    {id:'e-ht',lab:'Montant HT',val:d.ht,num:true},
+    {id:'e-escpct',lab:'Escompte %',val:d.escpct||0,num:true},
+    {id:'e-taux',lab:'Taux FO %',val:d.taux,num:true},
+    {id:'e-paie',lab:'Mode de paiement',val:d.paie||''}
+  ],function(){d.des=document.getElementById('e-des').value.trim();d.ht=+document.getElementById('e-ht').value||0;d.escpct=+document.getElementById('e-escpct').value||0;d.esc=Math.round(d.ht*d.escpct/100*100)/100;d.taux=+document.getElementById('e-taux').value||0;d.paie=document.getElementById('e-paie').value;delete d.foFixe;save();syncDepenseRow(d,'facture_ocr');renderAll();});
+}
+function askDelDep(i){confirmModal("Supprimer cette ligne ?","Attention, souhaitez-vous vraiment supprimer cette depense ?",function(){state.deps.splice(i,1);save();renderAll();});}
+
+// ---- modales ----
+var modalCb=null;
+function confirmModal(title,body,cb){document.getElementById('modal-title').textContent=title;document.getElementById('modal-body').innerHTML='<div style="font-size:13px;color:#444">'+body+'</div>';modalCb=cb;var ok=document.getElementById('modal-ok');ok.textContent='Confirmer';ok.onclick=function(){closeModal();if(modalCb)modalCb();};document.getElementById('modal').classList.add('show');}
+function modalForm(title,fields,cb){document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML='<div class="modal-grid">'+fields.map(function(f){return '<div class="field"><label>'+f.lab+'</label><input id="'+f.id+'" '+(f.num?'type="number"':'')+' value="'+(''+f.val).replace(/"/g,'&quot;')+'"></div>';}).join('')+'</div>';
+  modalCb=cb;var ok=document.getElementById('modal-ok');ok.textContent='Enregistrer';ok.onclick=function(){if(modalCb)modalCb();closeModal();};document.getElementById('modal').classList.add('show');}
+function closeModal(){document.getElementById('modal').classList.remove('show');modalCb=null;}
+
+function parseCSV(t){return t.trim().split(/[\r\n]+/).map(function(l){return l.split(/[;\t]/).map(function(c){return c.trim();});});}
+function handleImport(t){var rows=parseCSV(t);if(!rows.length)return;var head=rows[0].map(function(h){return h.toLowerCase();});var isProd=head.some(function(h){return h.indexOf('dotation')>=0;});var hasH=head.some(function(h){return /[a-z]/.test(h);});var nd=0,np=0;
+  rows.slice(hasH?1:0).forEach(function(r){if(r.length<3||!r[0])return;if(isProd){state.prods.push({nom:r[0],mail:r[1]||'',dot:+(''+r[2]).replace(/[^\d.]/g,'')||0,dot41:0,consoInit:0});np++;}else{var me=r[1];var tx=(r[5]!==undefined&&r[5]!=='')?+(''+r[5]).replace(/[^\d.]/g,''):((MESURES[me]||{}).taux||0);state.deps.push({prod:r[0],mes:me,des:r[2]||'',ht:+(''+r[3]).replace(/[^\d.]/g,'')||0,esc:+(''+(r[4]||0)).replace(/[^\d.]/g,'')||0,escpct:0,taux:tx,paie:''});nd++;}});
+  save();renderAll();document.getElementById('import-status').innerHTML='Importe : '+np+' producteur(s), '+nd+' depense(s).';}
+function exportCSV(type){var m=compute();var head,rows,name;
+  if(type==='dep'){head="Producteur;Mesure;Designation;MontantHT;Escompte;Taux;MontantFO;Paiement";rows=allDeps().map(function(d){return [d.prod,d.mes,d.des,d.ht,d.esc||0,d.taux,foOf(d),d.paie||''].join(';');});name="depenses_PO.csv";}
+  else if(type==='prod'){head="Nom;Emails;Dotation46;Dotation41;DejaEngage";rows=state.prods.map(function(p){return [p.nom,p.mail||'',p.dot,p.dot41||0,p.consoInit||0].join(';');});name="producteurs_PO.csv";}
+  else{head="CodeMesure;Intitule;NbLignes;HTeligible;FOconsomme";rows=Object.entries(m.byMes).map(function(e){return [e[0],libMesure(e[0]),e[1].n,e[1].ht,Math.round(e[1].fo)].join(';');});name="vue_MAC_FranceAgriMer.csv";}
+  dl(name,head+"\n"+rows.join("\n"));}
+function exportEtatFAM(){var head="Raison sociale;Code Mesure;Code action;Categorie de depenses;Designation;N facture;Date emission;Montant HT facture;Montant HT pris en charge FO;Montant TTC facture;Type de paiement";
+  var rows=allDeps().map(function(d){var ttc=Math.round(d.ht*1.2*100)/100;return [d.prod,d.mes,'',libMesure(d.mes),d.des,'','',d.ht,foOf(d),ttc,d.paie||''].join(';');});
+  dl("etat_depenses_FranceAgriMer.csv",head+"\n"+rows.join("\n"));}
+function findProd(nom){return state.prods.find(function(p){return p.nom===nom;})||{};}
+function exportEtatFAM_XLSX(){
+  if(typeof XLSX==='undefined'){alert('La librairie Excel ne sest pas chargee (verifiez la connexion internet) - reessayez.');return;}
+  var head=["Raison sociale","Nom","Prenom","Adresse","Code postal","commune","N SIRET (14 chiffres)","N PACAGE (9 chiffres)",
+    "Code Mesure","Code action","Categorie de depenses","Emises par","N facture","Date d'emission",
+    "Montant HT facture","Montant HT pris en charge par le FO","Montant TTC de la facture","Type de paiement",
+    "Date de l'acquittement","Montant TTC","Montant total de l'action pour le producteur","Objet de la depense","Commentaires"];
+  var rows=allDeps().map(function(d){
+    var p=findProd(d.prod);
+    var ttcF=d.ttcFacture!=null?d.ttcFacture:Math.round(d.ht*1.2*100)/100;
+    return [p.nom||d.prod,p.nomGerant||'',p.prenomGerant||'',p.adresse||'',p.cp||'',p.commune||'',p.siret||'',p.pacage||'',
+      d.mes,d.codeAction||'',d.categorie||libMesure(d.mes),d.fournisseur||'',d.nfacture||'',d.dateEmission||'',
+      d.ht,foOf(d),ttcF,d.paie||'',d.dateAcq||'',d.ttcPaye!=null?d.ttcPaye:'',foOf(d),d.des||'',d.commentaires||''];
+  });
+  var ws=XLSX.utils.aoa_to_sheet([head].concat(rows));
+  ws['!cols']=head.map(function(){return {wch:18};});
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Etat des depenses");
+  XLSX.writeFile(wb,"Etat_depenses_FranceAgriMer_PO2026.xlsx");
+}
+function exportJSON(){dl("sauvegarde_PO.json",JSON.stringify(state,null,2));}
+function dl(n,c){var b=new Blob([c],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+
+document.querySelectorAll('.tab').forEach(function(t){t.onclick=function(){document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('active');});t.classList.add('active');document.getElementById('p-'+t.dataset.p).classList.add('active');};});
+document.querySelectorAll('th[data-s]').forEach(function(th){th.onclick=function(){var k=th.dataset.s;if(sortKey===k)sortAsc=!sortAsc;else{sortKey=k;sortAsc=true;}renderSynth();};});
+document.querySelectorAll('th[data-sp]').forEach(function(th){th.onclick=function(){var k=th.dataset.sp;if(sortP===k)sortPAsc=!sortPAsc;else{sortP=k;sortPAsc=true;}renderProdEdit();};});
+['a-qte','a-pu','a-escpct','a-taux'].forEach(function(id){document.getElementById(id).addEventListener('input',aPrev);});
+document.getElementById('a-rpd').addEventListener('change',aPrev);
+document.getElementById('a-prod').addEventListener('change',aPrev);
+var drop=document.getElementById('drop');drop.addEventListener('click',function(){document.getElementById('file').click();});
+drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('over');});drop.addEventListener('dragleave',function(){drop.classList.remove('over');});
+drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('over');var f=e.dataTransfer.files[0];if(f){var r=new FileReader();r.onload=function(ev){handleImport(ev.target.result);};r.readAsText(f);}});
+document.getElementById('file').addEventListener('change',function(e){var f=e.target.files[0];if(f){var r=new FileReader();r.onload=function(ev){handleImport(ev.target.result);};r.readAsText(f);}});
+document.getElementById('restore').addEventListener('change',function(e){var f=e.target.files[0];if(f){var r=new FileReader();r.onload=function(ev){try{state=JSON.parse(ev.target.result);if(!state.ops)state.ops=[];save();renderAll();alert('Sauvegarde restauree.');}catch(x){alert('Fichier invalide.');}};r.readAsText(f);}});
+document.getElementById('today').textContent="Au "+new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+loadReferentiel();
+if(!loadState()){reloadRealSilent();}else{renderAll();}
+loadFromSheetsGranular(function(ok){
+  if(ok){renderAll();fillSelects();}
+  else{loadStateFromServer(function(ok2){if(ok2){renderAll();fillSelects();}});}
+});
+function reloadRealSilent(){state={prods:JSON.parse(JSON.stringify(seedProd)),deps:[],ops:JSON.parse(JSON.stringify(seedOps))};save();renderAll();}
+aAuto();opAuto();
+
+// ---- Analyse de facture : IA directe (OpenRouter) + n8n pour Sheets ----
+var OPENROUTER_KEY = ''; // <-- a renseigner uniquement sur le serveur via sed, jamais ici
+var OPENROUTER_MODELS = [
+  'nvidia/nemotron-nano-12b-v2-vl:free',
+  'google/gemma-4-31b-it:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'nex-agi/nex-n2-pro:free'
+];
+var derniereAnalyse=null;
+var factureFichier=null;
+
+var fdrop=document.getElementById('facture-drop');
+fdrop.addEventListener('click',function(){document.getElementById('facture-file').click();});
+fdrop.addEventListener('dragover',function(e){e.preventDefault();fdrop.classList.add('over');});
+fdrop.addEventListener('dragleave',function(){fdrop.classList.remove('over');});
+fdrop.addEventListener('drop',function(e){e.preventDefault();fdrop.classList.remove('over');var f=e.dataTransfer.files[0];if(f){factureFichier=f;factureMeta=null;fdrop.innerHTML='<b>'+f.name+'</b> - Cliquez sur Analyser, ou deposez un autre fichier';}});
+document.getElementById('facture-file').addEventListener('change',function(e){var f=e.target.files[0];if(f){factureFichier=f;factureMeta=null;fdrop.innerHTML='<b>'+f.name+'</b> - Cliquez sur Analyser, ou deposez un autre fichier';}});
+
+// ---- pdf.js : conversion PDF -> image dans le navigateur ----
+var PDFJS_LOADED=false;
+function loadPdfJs(cb){
+  if(PDFJS_LOADED){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  s.onload=function(){
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    PDFJS_LOADED=true; cb();
+  };
+  s.onerror=function(){cb(new Error('Impossible de charger pdf.js'));};
+  document.head.appendChild(s);
+}
+
+function pdfToBase64Png(file,cb){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var data=new Uint8Array(e.target.result);
+    pdfjsLib.getDocument({data:data}).promise.then(function(pdf){
+      pdf.getPage(1).then(function(page){
+        var vp=page.getViewport({scale:2.0});
+        var canvas=document.createElement('canvas');
+        canvas.width=vp.width; canvas.height=vp.height;
+        page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){
+          cb(null,canvas.toDataURL('image/png').split(',')[1],'image/png');
+        });
+      });
+    }).catch(cb);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function fileToBase64(file,cb){
+  var reader=new FileReader();
+  reader.onload=function(e){cb(null,e.target.result.split(',')[1],file.type||'image/jpeg');};
+  reader.readAsDataURL(file);
+}
+
+function analyserFacture(){
+  if(!factureFichier){alert("Choisissez d\'abord une facture (image ou PDF).");return;}
+  var status=document.getElementById('facture-status');
+  document.getElementById('facture-resultat').innerHTML='';
+  var isPdf=factureFichier.type==='application/pdf'||factureFichier.name.toLowerCase().endsWith('.pdf');
+
+  if(isPdf){
+    status.textContent='Conversion PDF en image...';
+    loadPdfJs(function(){
+      if(arguments[0] instanceof Error){status.textContent='Erreur : '+arguments[0].message;return;}
+      pdfToBase64Png(factureFichier,function(err,b64,mime){
+        if(err){status.textContent='Erreur PDF : '+err.message;return;}
+        lancerAnalyse(b64,mime);
+      });
+    });
+  } else {
+    fileToBase64(factureFichier,function(err,b64,mime){lancerAnalyse(b64,mime);});
+  }
+}
+
+
+
+// ---- Appel OpenRouter avec fallback automatique ----
+var KEYWORD_MESURES={"pollinis": "3.6.1", "polinis": "3.6.1", "polenis": "3.6.1", "ruche": "3.6.1", "abeille": "3.6.1", "apiculteur": "3.6.1", "biodivers": "3.6.2", "serre": "1.29", "abri": "1.29", "froid": "2.16", "chambre froide": "2.16", "frigo": "2.16", "conservation": "2.16", "paillage": "2.31", "voile": "2.31", "plant greff": "3.4.7", "greffe": "3.4.7", "semence": "3.4.8", "biocontrole": "3.4.9", "auxiliaire": "3.4.9", "irrigation": "3.3.1", "arrosage": "3.3.1", "goutte a goutte": "3.3.1", "station": "3.3.2", "economie energie": "3.7.1", "isolation": "3.7.1", "panneau solaire": "3.7.2", "photovoltaique": "3.7.2", "tracteur": "1.26", "materiel": "1.26", "tri": "1.33", "tracabilite": "2.23", "qualite": "2.21", "certification": "2.21", "agroforesterie": "3.6.8"};
+
+function matchMesureParMotsCles(designation){
+  if(!designation)return null;
+  var d=designation.toLowerCase();
+  for(var kw in KEYWORD_MESURES){
+    if(d.indexOf(kw)!==-1)return KEYWORD_MESURES[kw];
+  }
+  return null;
+}
+
+function buildSystemPrompt(){
+  // Toutes les mesures du referentiel, titres tronques pour limiter la taille du prompt
+  var mesuresList = referentiel.map(function(m){
+    return m.code+'='+m.titre.substring(0,38);
+  }).join('; ');
+
+  return "Tu analyses visuellement une image de facture fournisseur (peut etre un scan). "
+    + "Reponds UNIQUEMENT en JSON valide sans markdown, base UNIQUEMENT sur ce que tu vois, sans inventer. "
+    + "Schema : client, fournisseur, numero_facture, date_facture, mode_paiement, montant_ht_total, tva, montant_ttc (nombres ou null), "
+    + "lignes:[{designation, quantite, prix_unitaire_ht, montant_ht, mesure_suggeree}] -- le champ mesure_suggeree est OBLIGATOIRE dans chaque ligne, meme si sa valeur est null, ne l'omets jamais. "
+    + "fournisseur = l\'entreprise qui EMET la facture (entete, ou apres \'Emis par\'). "
+    + "client = UNIQUEMENT le nom propre trouve apres le mot \'Destinataire\' ou \'Client\' (ignore les references ou numeros de facture juste au-dessus ou a cote, ne les inclus jamais dans le nom). "
+    + "ATTENTION lecture du tableau de lignes : repere bien chaque colonne (Description, Quantite, Unite, Prix unitaire HT, TVA%, montant TVA, Total TTC). "
+    + "Le montant_ht d\'une ligne = quantite x prix_unitaire_ht (ne confonds JAMAIS avec la colonne montant de TVA ni avec le Total TTC). "
+    + "Verifie que la somme des montant_ht des lignes correspond au montant_ht_total affiche sur la facture ; si ce n\'est pas le cas, recalcule. "
+    + "Cree une ligne des qu\'un libelle est associe a un montant, meme sans quantite explicite (alors quantite=1, prix_unitaire_ht=montant_ht). "
+    + "Pour mesure_suggeree : choisis le code le plus pertinent selon le SENS de la designation (pas juste un mot-cle litteral) dans ce referentiel officiel PO : "
+    + mesuresList
+    + " ; ou null si rien ne correspond clairement. "
+    + "Nombres en point decimal sans symbole monetaire. Null si information vraiment introuvable.";
+}
+
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+async function appelOpenRouter(b64,mimeType,modelIndex,attempt){
+  attempt=attempt||0;
+  if(modelIndex>=OPENROUTER_MODELS.length){
+    if(attempt<2){
+      var wait=(attempt+1)*8000;
+      document.getElementById('facture-status').textContent='Rate limit sur tous les modeles. Nouvelle tentative dans '+(wait/1000)+'s...';
+      await sleep(wait);
+      return appelOpenRouter(b64,mimeType,0,attempt+1);
+    }
+    throw new Error('Tous les modeles sont en rate limit (429). Reessayez dans quelques minutes.');
+  }
+  var model=OPENROUTER_MODELS[modelIndex];
+  document.getElementById('facture-status').textContent='Essai modele '+(modelIndex+1)+'/'+OPENROUTER_MODELS.length+' : '+model.split('/')[1]+'...';
+  try{
+    var resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Authorization':OPENROUTER_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:model,temperature:0,
+        response_format:{type:'json_object'},
+        messages:[
+          {role:'system',content:buildSystemPrompt()},
+          {role:'user',content:[
+            {type:'text',text:'Voici la facture. Extrait les informations au format JSON demande.'},
+            {type:'image_url',image_url:{url:'data:'+mimeType+';base64,'+b64}}
+          ]}
+        ]
+      })
+    });
+    if(resp.status===429){await sleep(3000);return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);}
+    if(resp.status===404){return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);}
+    if(!resp.ok){await sleep(2000);return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);}
+    var data=await resp.json();
+    var raw=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+    if(!raw){await sleep(2000);return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);}
+    var cleaned=raw.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+    var result=JSON.parse(cleaned);
+    result._model_used=model;
+    if(Array.isArray(result.lignes)){
+      result.lignes.forEach(function(l){
+        if(!('mesure_suggeree' in l))l.mesure_suggeree=null;
+        if(!l.mesure_suggeree){
+          var matched=matchMesureParMotsCles(l.designation);
+          if(matched)l.mesure_suggeree=matched;
+        }
+        if(!('quantite' in l)||l.quantite==null)l.quantite=1;
+        if(!('prix_unitaire_ht' in l)||l.prix_unitaire_ht==null)l.prix_unitaire_ht=l.montant_ht||0;
+      });
+    }
+    return result;
+  }catch(e){
+    await sleep(2000);
+    return appelOpenRouter(b64,mimeType,modelIndex+1,attempt);
+  }
+}
+
+function lancerAnalyse(b64,mime){
+  appelOpenRouter(b64,mime,0,0).then(function(data){
+    data.nom_fichier=factureFichier.name;
+    data.date_analyse=new Date().toISOString();
+    if(!Array.isArray(data.lignes))data.lignes=[];
+    document.getElementById('facture-status').textContent='Analyse terminee. Modele : '+data._model_used;
+    derniereAnalyse=data;
+    factureMeta={fournisseur:data.fournisseur||'',numero:data.numero_facture||'',date:data.date_facture||''};
+    afficherResultatFacture(data);
+    if(N8N_SHEETS_URL&&N8N_SHEETS_URL.indexOf('VOTRE')<0){
+      fetch(N8N_SHEETS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(function(){});
+    }
+  }).catch(function(err){
+    document.getElementById('facture-status').textContent='Erreur : '+err.message;
+  });
+}
+
+
+function buildProdOptions(selected){
+  var prods=document.getElementById('a-prod').options;
+  var o='<option value="">-- Choisir --</option>';
+  for(var i=0;i<prods.length;i++){
+    var v=prods[i].value;
+    if(!v)continue;
+    o+='<option value="'+v+'"'+(v===selected?' selected':'')+'>'+v+'</option>';
+  }
+  return o;
+}
+function buildMesOptions(selected){
+  var o='<option value="">-- Choisir --</option>';
+  // Utilise le referentiel complet (95 mesures) au lieu des 17 codes en dur
+  var src = (typeof referentiel !== 'undefined' && referentiel.length > 0) ? referentiel : Object.entries(MESURES).map(function(e){return {code:e[0],titre:e[1].lib,taux:e[1].taux+'%'};});
+  src.forEach(function(m){
+    var code = m.code || m[0];
+    var lib = m.titre || (m[1] && m[1].lib) || '';
+    var taux = m.taux || '';
+    o+='<option value="'+code+'"'+(code===selected?' selected':'')+'>'+code+' — '+lib+(taux?' ('+taux+')':'')+' </option>';
+  });
+  return o;
+}
+
+function afficherResultatFacture(data){
+  var box=document.getElementById('facture-resultat');
+  if(data.erreur){box.innerHTML='<div class="alertbox">'+(data.message||"Erreur lors de l'analyse de la facture.")+'</div>';return;}
+
+  // Trouver le producteur correspondant
+  var prodMatch=data.client?trouverProducteur(data.client):null;
+
+  var h='<div class="card" style="background:var(--vert-cl);margin-top:12px;margin-bottom:0">';
+  h+='<h2 style="margin-bottom:10px">Resultats IA — a valider avant enregistrement</h2>';
+
+  // Infos generales facture
+  h+='<div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:10px">';
+  h+='<div class="field"><label>Fournisseur (IA)</label><div style="font-weight:600">'+(data.fournisseur||'-')+'</div></div>';
+  h+='<div class="field"><label>N° facture</label><div>'+(data.numero_facture||'-')+'</div></div>';
+  h+='<div class="field"><label>Date facture</label><div>'+(data.date_facture||'-')+'</div></div>';
+  h+='<div class="field"><label>Montant HT total</label><div style="font-weight:600;color:var(--vert-f)">'+(data.montant_ht_total!=null?eur(data.montant_ht_total):'-')+'</div></div>';
+  h+='<div class="field"><label>TVA</label><div>'+(data.tva!=null?eur(data.tva):'-')+'</div></div>';
+  h+='<div class="field"><label>Montant TTC</label><div>'+(data.montant_ttc!=null?eur(data.montant_ttc):'-')+'</div></div>';
+  h+='</div>';
+
+  // Producteur : suggestion IA + dropdown de validation
+  h+='<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:12px;border:2px solid '+(prodMatch?'var(--vert)':'var(--orange)')+'">';
+  h+='<div style="font-size:11px;color:var(--gris);margin-bottom:6px">PRODUCTEUR</div>';
+  h+='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+  h+='<div style="font-size:12px;color:var(--gris)">IA a reconnu : <b>'+(data.client||'?')+'</b></div>';
+  h+='<div class="field" style="flex:1;min-width:200px"><label>Valider / Corriger</label>';
+  h+='<select id="ia-prod-select" style="width:100%">'+buildProdOptions(prodMatch||'')+'</select></div>';
+  h+='</div></div>';
+
+  // Lignes avec mesure : suggestion + dropdown
+  if(data.lignes&&data.lignes.length){
+    h+='<div style="font-size:12px;color:var(--gris);margin-bottom:6px">LIGNES DE FACTURE — validez la mesure pour chaque ligne puis cliquez "Utiliser"</div>';
+    h+='<div class="scroll"><table><thead><tr><th>Designation</th><th>Qte</th><th>PU HT</th><th>Montant HT</th><th style="min-width:220px">Mesure (valider/corriger)</th><th></th></tr></thead><tbody>';
+    data.lignes.forEach(function(l,i){
+      var suggeree=l.mesure_suggeree||'';
+      h+='<tr>';
+      h+='<td style="font-size:12px">'+(l.designation||'-')+'</td>';
+      h+='<td>'+(l.quantite!=null?l.quantite:'-')+'</td>';
+      h+='<td>'+(l.prix_unitaire_ht!=null?eur(l.prix_unitaire_ht):'-')+'</td>';
+      h+='<td style="font-weight:600">'+(l.montant_ht!=null?eur(l.montant_ht):'-')+'</td>';
+      h+='<td><select id="ia-mes-'+i+'" style="width:100%;font-size:11px">'+buildMesOptions(suggeree)+'</select>';
+      if(suggeree&&MESURES[suggeree]){
+        h+='<div style="font-size:10px;color:var(--vert);margin-top:2px">✓ IA suggère : '+suggeree+'</div>';
+      } else {
+        h+='<div style="font-size:10px;color:var(--orange);margin-top:2px">⚠ Aucune mesure suggérée</div>';
+      }
+      h+='</td>';
+      h+='<td><button class="mini" onclick="utiliserLigneValidee('+i+')">Utiliser</button></td>';
+      h+='</tr>';
+    });
+    h+='</tbody></table></div>';
+    h+='<div class="note" style="margin-top:8px">La mesure suggérée par l\'IA est présélectionnée. Vérifiez et corrigez si besoin avant de cliquer "Utiliser".</div>';
+  } else {
+    h+='<div class="note">Aucune ligne détectée. Complétez manuellement ci-dessous.</div>';
+  }
+  h+='</div>';
+  box.innerHTML=h;
+}
+
+function normaliserNom(s){
+  return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+}
+// Distance de Levenshtein simplifiee pour matching flou (tolere fautes de frappe/OCR)
+function levenshtein(a,b){
+  var m=a.length,n=b.length;
+  var dp=[];
+  for(var i=0;i<=m;i++){dp.push([i]);}
+  for(var j=0;j<=n;j++){dp[0][j]=j;}
+  for(var i=1;i<=m;i++){
+    for(var j=1;j<=n;j++){
+      if(a[i-1]===b[j-1]){dp[i][j]=dp[i-1][j-1];}
+      else{dp[i][j]=1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);}
+    }
+  }
+  return dp[m][n];
+}
+
+function similarite(a,b){
+  if(!a||!b)return 0;
+  var dist=levenshtein(a,b);
+  var maxLen=Math.max(a.length,b.length);
+  if(maxLen===0)return 1;
+  return 1-(dist/maxLen);
+}
+
+function trouverProducteur(nomFacture){
+  // Decouper en mots AVANT normalisation (normaliserNom supprime les espaces)
+  var motsBruts=(nomFacture||'').split(/\s+/).filter(function(m){return m.length>=4;});
+  var mots=motsBruts.map(normaliserNom).filter(Boolean);
+
+  var cible=normaliserNom(nomFacture);
+  if(!cible)return null;
+  var prods=document.getElementById('a-prod').options;
+
+  // Etape 1 : matching exact par inclusion de sous-chaine (comme avant)
+  var meilleur=null,meilleurLong=0;
+  for(var i=0;i<prods.length;i++){
+    var ref=normaliserNom(prods[i].value);
+    if(!ref)continue;
+    if(cible.indexOf(ref)>=0||ref.indexOf(cible)>=0){
+      if(ref.length>meilleurLong){meilleur=prods[i].value;meilleurLong=ref.length;}
+    }
+  }
+  if(meilleur)return meilleur;
+
+  // Etape 2 : matching par mot significatif inclus dans un code producteur abrege
+  // (ex: "Abdellah ABOUYAZID" -> mot "ABOUYAZID" trouve dans le code "AABOUYAZID")
+  var meilleurMot=null,meilleurMotLong=0;
+  for(var i=0;i<prods.length;i++){
+    var ref=normaliserNom(prods[i].value);
+    if(!ref)continue;
+    for(var k=0;k<mots.length;k++){
+      if(ref.indexOf(mots[k])>=0&&mots[k].length>meilleurMotLong){
+        meilleurMot=prods[i].value;meilleurMotLong=mots[k].length;
+      }
+    }
+  }
+  if(meilleurMot)return meilleurMot;
+
+  // Etape 3 : matching flou global (tolere petites fautes OCR/IA)
+  var meilleurScore=0,meilleurFlou=null;
+  for(var i=0;i<prods.length;i++){
+    var ref=normaliserNom(prods[i].value);
+    if(!ref)continue;
+    var score=similarite(cible,ref);
+    if(score>meilleurScore){meilleurScore=score;meilleurFlou=prods[i].value;}
+  }
+  if(meilleurScore>=0.7)return meilleurFlou;
+
+  // Etape 4 : matching flou mot par mot contre le code (gere les codes courts abreges)
+  var meilleurScoreMot=0,meilleurFlouMot=null;
+  for(var i=0;i<prods.length;i++){
+    var ref=normaliserNom(prods[i].value);
+    if(!ref)continue;
+    for(var k=0;k<mots.length;k++){
+      var sc=similarite(mots[k],ref);
+      if(sc>meilleurScoreMot){meilleurScoreMot=sc;meilleurFlouMot=prods[i].value;}
+    }
+  }
+  if(meilleurScoreMot>=0.75)return meilleurFlouMot;
+
+  return null;
+}
+
+
+function utiliserLigne(i){
+  utiliserLigneValidee(i);
+}
+function utiliserLigneValidee(i){
+  if(!derniereAnalyse||!derniereAnalyse.lignes||!derniereAnalyse.lignes[i])return;
+  var l=derniereAnalyse.lignes[i];
+
+  // Producteur : depuis le dropdown de validation IA
+  var prodSel=document.getElementById('ia-prod-select');
+  var prodVal=prodSel?prodSel.value:'';
+  if(!prodVal&&derniereAnalyse.client){
+    prodVal=trouverProducteur(derniereAnalyse.client)||'';
+  }
+  if(prodVal)document.getElementById('a-prod').value=prodVal;
+
+  // Mesure : depuis le dropdown de validation de la ligne
+  var mesSel=document.getElementById('ia-mes-'+i);
+  var mesVal=mesSel?mesSel.value:(l.mesure_suggeree||'');
+  if(mesVal){
+    var existeDansMesures=MESURES[mesVal]!=null;
+    var existeDansRef=(typeof referentiel!=='undefined')&&referentiel.some(function(m){return m.code===mesVal;});
+    if(existeDansMesures||existeDansRef){
+      document.getElementById('a-mes').value=mesVal;
+    }
+  }
+
+  // Autres champs
+  document.getElementById('a-des').value=l.designation||'';
+  document.getElementById('a-qte').value=(l.quantite!=null?l.quantite:1);
+  if(l.prix_unitaire_ht!=null)document.getElementById('a-pu').value=l.prix_unitaire_ht;
+  else if(l.montant_ht!=null&&l.quantite)document.getElementById('a-pu').value=Math.round((l.montant_ht/l.quantite)*100)/100;
+
+  var paie=document.getElementById('a-paie');
+  if(derniereAnalyse.mode_paiement){
+    var match=Array.prototype.find.call(paie.options,function(o){return o.value.toLowerCase()===derniereAnalyse.mode_paiement.toLowerCase();});
+    if(match)paie.value=match.value;
+  }
+  document.getElementById('a-fournisseur').value=derniereAnalyse.fournisseur||'';
+  document.getElementById('a-nfacture').value=derniereAnalyse.numero_facture||'';
+  var de=derniereAnalyse.date_facture?derniereAnalyse.date_facture.match(/^\d{4}-\d{2}-\d{2}/):null;
+  document.getElementById('a-date-emission').value=de?de[0]:'';
+
+  aAuto();
+  aPrev();
+  document.getElementById('a-prod').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+
+// ======== REFERENTIEL PO ========
+var REF_KEY='univert_referentiel_v1';
+var REFERENTIEL_DEFAULT=[{"code": "1.26", "titre": "Matériel spécifique d’assistance à la production au champ et dans", "taux": "", "categorie": "Investissements", "eligible": "Types d’investissements éligibles : -Equipements de pulvérisation standards \u0014 : ex. atomiseurs. Critères d’éligibilités : -Equipements de fertilisation. -Equipements de préparation des sols : ex. bineuse, pailleuse… -Equipements d’aide à la récolte : ex. ramasseuses, tapis, échelles, picking bag, chariot porte pallox, plateforme d’assistante à la récolte, remorques à pallox … -Equipements de taill"}, {"code": "1.29", "titre": "Serres et abris (continuité des investissements de PO agréés sous la", "taux": "", "categorie": "Investissements", "eligible": "Construction, matériels et équipements éligibles : A présenter avec la demande de paiement : Dépenses inéligibles : Coûts de construction de serres verres et d’abris plastiques : création, extension et modernisation. Pour la partie Construction : copie de l'arrêté Matériels et équipements spécifiques aux serres et aux abris, entre autres : -plastiques d’abris, et clips, arceaux et tous autres élém"}, {"code": "1.29.1", "titre": "Extension et modernisation de serres et d’abris, matériels et équipements", "taux": "", "categorie": "Investissements", "eligible": "Construction, matériels et équipements éligibles : 1. Pour les matériels et équipements de serre ou abris, pas de justificatif spécifique à fournir. Dépenses inéligibles : Coûts d’extension et de modernisation de serres verres et d’abris plastiques chauffés aux énergies fossiles (hors coût des systèmes de chauffage utilisant une énergie fossile). Matériels et équipements spécifiques aux serres et "}, {"code": "1.30", "titre": "Installation et/ou amélioration de systèmes permettant une meilleure gestion de la ressource en eau", "taux": "5%", "categorie": "Investissements", "eligible": "JUSTIFICATIFS ET CONDITIONS SPECIFIQUES CONDITIONS GENERALES A fournir au plus tard à la demande de paiement Conditions générales applicables à tout investissement : Conditions supplémentaires selon le type d’investissement : Investissements d'amélioration d'une installation d'irrigation existante ou un élément d’une infrastructure d’irrigation :  Modernisation d’un système d’irrigation existant "}, {"code": "1.33", "titre": "Tri, stockage, conditionnement, transport, réception, matériel de préparation et de 1ère", "taux": "", "categorie": "Investissements", "eligible": "Types d’investissements éligibles : -Construction, aménagement et amélioration des : *stations de réception, y compris les quais de réception. *stations de tri, de conditionnement. *stations de stockage, y compris le stockage en froid et les zone de stockage des caisses en plein air. *stations de préparation et de 1ère transformation. -Location ou achat des espaces de stockage et/ou de conditionne"}, {"code": "2.15", "titre": "Système de conduite et de taille", "taux": "", "categorie": "Production / Qualité", "eligible": "A présenter à l’agrément : Critères d’éligibilités : -Pour des pratiques de taille non -Les équipements doivent être spécifiques aux listées ci-contre, l’OP doit fournir productions éligibles à l’OCM Fruits et Légumes, la preuve que sa demande va audelà de la pratique courante. ou utilisés spécifiquement par l'OP pour un produit pour lequel elle est reconnue. A présenter avec la demande de paiemen"}, {"code": "2.16", "titre": "Chaîne du froid, préservation du produit par le froid et autres moyens de conservation", "taux": "90%", "categorie": "Production / Qualité", "eligible": "Isolation de station de conditionnement. -Construction et/ou aménagement de quais réfrigérés. -Construction, rénovation, acquisition, ou location de chambres froides. -Equipements de production de froid (groupe froid, unité hydrocooling…) -Equipements de mesure : enregistreurs de température et d’hygrométrie, capteurs… -Equipement de sécurisation de la chaine du froid : groupes électrogènes, alarm"}, {"code": "2.17", "titre": "Plantation et surgreffage de plantes pérennes ou semi-pérennes.", "taux": "", "categorie": "Production / Qualité", "eligible": "A présenter avec la demande de paiement : Types de dépenses et d’investissements éligibles : - Plants d’espèces pérennes ou semipérennes et les plants de pollinisateurs liés - Greffons - Investissements liés à l’action de plantation d’espèces éligibles: matériel de palissage et notamment les poteaux, fils, piquets, câbles, releveurs de raisin (fils) … - Matériels de protection des plants contre le"}, {"code": "2.18", "titre": "Informatisation et automatisation des chaînes de préparation et conditionnement", "taux": "", "categorie": "Production / Qualité", "eligible": "A présenter à l’agrément : -Matériels d’informatisation et d’automatisation liés aux équipements de triage, parage, épluchage, calibrage, tri colorimétrique ou photométrique… -Note explicative sur les objectifs des investissements. -Achat et développement de logiciels liés à ces matériels. Dépenses de main d’œuvre / prestations éligibles : -Temps de travaux liés à la préparation et au suivi de pro"}, {"code": "2.19", "titre": "Arrachages sur vergers et arbustes", "taux": "", "categorie": "Production / Qualité", "eligible": "A présenter à l’agrément : Critères d’éligibilité -Note sur l’adaptation du potentiel de production (cohérence avec les objectifs commerciaux de l’OP). -Cette action est réservée aux arrachages sur -Matériels nécessaires à l’arrachage. Dépenses de main d’œuvre / prestations éligibles : -Temps de travail de l’exploitant ou de salariés des exploitants pour l’arrachage -Prestations de service pour l’"}, {"code": "2.20", "titre": "Lutte contre les ravageurs", "taux": "", "categorie": "Production / Qualité", "eligible": "Critères d’éligibilité : -Ces actions doivent aller au-delà des bonnes pratiques agricoles. - Lutte contre les rongeurs, les oiseaux, mammifères et autres ravageurs : - Barrières physiques de type grillage en profondeur, grillage autour des jeunes pieds… A présenter avec la demande de paiement : - Répulsifs naturels non toxiques contre les mammifères, - Filets anti-insectes (insect-proof), -Attent"}, {"code": "2.21", "titre": "Obtention et/ou maintien de démarches qualité reconnue", "taux": "", "categorie": "Production / Qualité", "eligible": "Dépenses de main d’œuvre / prestations éligibles : A présenter avec la demande de paiement : -Frais de personnel de l’OP, sur l’exploitation ou de prestation de service pour la mise en place et le suivi des cahiers -Compte rendu de la réalisation de l’action -Certificat ou attestation de conformité. -En cas de non atteinte de la certification, Liste des certifications et démarches éligibles : • • "}, {"code": "2.23", "titre": "Traçabilité des produits", "taux": "", "categorie": "Production / Qualité", "eligible": "A présenter avec la demande de paiement : -Outils de traçabilité permettant de remonter jusqu’à la parcelle : -Forfait traçabilité : Justificatifs listés dans la fiche forfait. -Logiciels de traçabilité (gestion de production, suivi parcellaire,…), -Imprimantes spécifiques de marquage, d’étiquette gencod,… -Note de synthèse sur la traçabilité mise en œuvre : objectifs et réalisations. Critères d’é"}, {"code": "2.24", "titre": "Agréage, contrôle de la qualité et des cahiers des charges en production", "taux": "", "categorie": "Production / Qualité", "eligible": "A présenter avec la demande de paiement : Rappels : -Matériels de contrôle de qualité : *sondes, pénétromètres, réfractomètre, matériel de laboratoire, balances agréées, hygromètre…. *laboratoire automatique de contrôle de la qualité gustative (ex : pimprenelle…) production biologique, fournir la preuve que la production est certifiée AB ou en conversion -Coût du temps de travail des salariés de l"}, {"code": "2.27", "titre": "Analyses", "taux": "", "categorie": "Production / Qualité", "eligible": "Types de dépenses éligibles : A présenter avec la demande de paiement : Prestations de service liées aux : • Analyses de résidus (LMR). • Analyses des autres contaminants (Ex : métaux lourds…). • Analyses des eaux utilisées en station ou en exploitation (Eaux de lavage, eaux de convoyage…). • Analyses de sols avant plantation. • Analyses foliaires. • Analyses d’eau d’irrigation • Analyses liées au"}, {"code": "2.28.1", "titre": "Moyens de lutte contre les intempéries pour s’adapter au changement", "taux": "", "categorie": "Production / Qualité", "eligible": "Types d’investissements et dépenses éligibles aux A présenter avec la demande d’agrément : Information complémentaire/engagement spécifique : dépenses environnementales et climatiques : Investissements en exploitations pour la protection contre les aléas climatiques dans la décision FranceAgriMer INTVSANAEI-2021-79 (hors équipements de lutte contre le gel listés dans la mesure 2.28.2) : -filets pa"}, {"code": "2.28.2", "titre": "Autres moyens de lutte contre les intempéries", "taux": "", "categorie": "Production / Qualité", "eligible": "Equipements de lutte contre le gel : - bâche à gaz à turbine - bougies - chaudière à biomasse tractée - convecteur à air chaud fixe - convecteur à air chaud mobile - diffuseur d’air chaud mobile - éolienne mobile - fils de palissage chauffants - frost-buster - matériel d’aspersion et de micro-aspersion - thermonébulisateur- tours à vent. Dépenses de main d’œuvre / prestations éligibles : -Prestati"}, {"code": "2.31", "titre": "Paillages et pose de voiles", "taux": "55%", "categorie": "Production / Qualité", "eligible": "A présenter avec la demande de paiement : - Surcoût de 55% du coût d’achat HT des paillages (maind’œuvre incluse) * les asperges blanches :  Film antibuée,  Film de paillage à ourlet blanc/noir 100 microns,  Film de paillage à ourlet blanc/noir 120 microns,  Film de paillage à ourlet blanc/noir 150 microns,  Film de paillage thermique à ourlet,  Film de paillage thermique soudé à ourlet. * l"}, {"code": "3.1.1", "titre": "Conversion en agriculture biologique", "taux": "", "categorie": "Environnement", "eligible": "Conditions particulières : Dépenses de main d’œuvre en exploitation : Surcoût de main d’œuvre lié à la conversion en agriculture biologique. Le montant éligible correspondant à ce surcoût est égal aux montants à l’hectare fixés dans le dispositif de conversion à l’agriculture biologique mis en œuvre dans le cadre du Plan Stratégique National 2023 - 2027 : A présenter avec la demande de paiement : "}, {"code": "3.1.2", "titre": "Maintien en agriculture biologique", "taux": "", "categorie": "Environnement", "eligible": "Dépenses de main d’œuvre en exploitation A présenter avec la demande de paiement: Conditions particulières : Surcoût de main d’œuvre lié au maintien en agriculture biologique. Liste des adhérents bénéficiaires et synthèse des surfaces en maintien AB. Le montant éligible correspondant à ce surcoût est égal aux montants Contrôle interne, à l’hectare fixés dans le dispositif conformément à la décisio"}, {"code": "3.2.1", "titre": "Production intégrée", "taux": "", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : Dépenses de main d’œuvre en exploitation : Dans le cas d’un forfait : -Montant forfaitaire à l’hectare prévu dans les fiches forfaits \u0014 validées et consultables -Liste des producteurs concernés (superficies nettes, montant payés) sur le site internet de FranceAgriMer. -Surcoût de main d’œuvre en exploitation -Attestation d’engagement et de conformité à la "}, {"code": "3.3.1", "titre": "Installation et/ou amélioration de systèmes permettant une meilleure gestion de la ressource en eau", "taux": "15%", "categorie": "Environnement", "eligible": "Investissements d'amélioration d'une installation d'irrigation existante ou un élément d’une infrastructure d’irrigation  Modernisation du système d’irrigation existant : o Liste fermée de 4 systèmes d’irrigation de remplacement exemptés de produire l’évaluation ex-ante des économies d’eau potentielles de 15 %2 (goutte-à-goutte surface, goutte-à-goutte enterré, aspersion sous frondaison Microjet,"}, {"code": "3.3.2", "titre": "Installation et/ou amélioration de tout système permettant une meilleure", "taux": "15%", "categorie": "Environnement", "eligible": "Types d’investissements éligibles ne nécessitant pas un diagnostic préalable (justification relative au respect des engagements techniques de la mesure réalisée au niveau national) : A présenter à l’agrément : Engagements spécifiques: -Pour les investissements nécessitant un diagnostic/étude préalable, fournir le diagnostic justifiant le respect des engagements techniques ci-contre. -La réduction "}, {"code": "3.4.1", "titre": "Gestion des effluents de serres et forçage hors sol", "taux": "", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : Dépenses inéligibles : -Installations et équipements nécessaires à la récupération, au traitement et à la réutilisation des eaux de drainage en production sous serres et en production d’endive : *système d’épuration. A conserver au siège de l’OP et/ou chez le producteur : *investissements en multicuviers. -Outils de pilotage nécessaires à la mise en œuvre "}, {"code": "3.4.2", "titre": "Equipements spécifiques sur l’exploitation et réglage du pulvérisateur afin", "taux": "", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : Engagements techniques :  Equipements sur le site de l’exploitation: -aménagement de l’aire de remplissage et de lavage dotées d’un dispositif de récupération et/ou de traitement des effluents de type Phytobac, Héliosec, Osmofilm, Ecobang ou tout autre dispositif reconnu efficace par le ministère de l’environnement. Ces aires doivent intégrer les prescrip"}, {"code": "3.4.3", "titre": "Mesure de gestion des effluents en station y compris première", "taux": "", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : Dépenses inéligibles : -Installations et équipements nécessaires à la récupération et au traitement des effluents en station avant rejet. -Pallox étanches utilisés spécifiquement pour le transport des cerises d’industrie dans une saumure. Note descriptive des actions réalisées et des résultats obtenus. Investissements et dépenses n’allant pas au-delà des o"}, {"code": "3.4.4", "titre": "Utilisation de moyens techniques à la production alternatifs à l'utilisation", "taux": "", "categorie": "Environnement", "eligible": " Matériels de substitution: Dépenses inéligibles : Temps passé par les chefs d’exploitations et/ou leurs -Matériel de lutte mécanique contre les adventices : bineuse, houe rotative, système spécifique de binage sur le rang, système de guidage automatisé pour bineuses, salariés ou des prestataires pour la mise en œuvre annuelle (enroulement et déroulement des filets et des bâches) désherbineuse, h"}, {"code": "3.4.5", "titre": "Limitation des risques de pollutions diffuses par les éléments fertilisants", "taux": "", "categorie": "Environnement", "eligible": " Equipements visant une meilleure répartition des apports : *Pesée embarquée des engrais organiques et minéraux, *Pesée sur fourche, pompe doseuse, *Système automatisé de préparation et de recyclage des solutions nutritives avec traçabilité pour le secteur horticole et maraîcher, *Matériel visant à une meilleure répartition des apports (système de débit proportionnel à l’avancement, dit DPA) et à"}, {"code": "3.4.6", "titre": "Matériels destinés à la lutte biologique et à l’observation et au", "taux": "", "categorie": "Environnement", "eligible": " Achat de matériels : Dépenses inéligibles : - Matériels de piégeages destinés à l’observation et au raisonnement. - Tous les coûts d’achat et d’application des produits phytosanitaires chimiques.) - Matériel de lutte pneumatique. - Plantes Relais, - Hôtel à insectes, - Alimentation pour auxiliaires (l’alimentation doit être spécifique - Les redevances pour pollutions diffuses - Frais de personne"}, {"code": "3.4.6.1", "titre": "Utilisation de moyens de la lutte biologique de type piégeages massifs et", "taux": "", "categorie": "Environnement", "eligible": "Dépenses d’achat et de main d’œuvre éligibles : Surcoût d’achat de matériels de type piégeage listés dans la partie D de l’annexe de la note de service DGAL/SDSPV/…. (liste des produits de biocontrôle, au titre des articles L.253-5 et L.253-7 du code rural et de la pêche maritime): Dans le cas particulier du piégeage du charançon pour les cultures de la BANANE PLANTAIN et la PATATE DOUCE, le coût "}, {"code": "3.4.6.3", "titre": "Utilisation d’auxiliaires de culture / macro-organismes", "taux": "", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : Les économies d’intrant des mesures 3.4.6.1 et 3.4.6.3 ne se déduisent pas 2 fois pour une même parcelle et une même méthode de lutte. Surcoût d’achat d’auxiliaires de cultures indigènes ou non-indigènes Fournir la liste des producteurs Dépenses inéligibles ayant mis en place la mesure, avec Dépenses de main d’œuvre / prestations éligibles : Les redevances"}, {"code": "3.4.7", "titre": "Utilisation de plants greffés afin de réduire l'usage de produits chimiques", "taux": "37%, 40%", "categorie": "Environnement", "eligible": "-Achat de plants greffés avec prise en charge au taux forfaitaire de 40% maximum du coût HT des espèces citées ci-dessous : A conserver au siège Espèces concernées Tomate Poivron Aubergine Caractéristiques des résistances/tolérances aux bio-agresseurs Nématodes, Pyrenochaeta lycopersici, Verticillium dahliae, Fusarium oxysporum radicis lycopersici, Ralstonia solanacearum Phytophtora, Nematodes Mel"}, {"code": "3.4.8", "titre": "Utilisation de semences et plants particuliers permettant de réduire", "taux": "61%, 78%, 50%", "categorie": "Environnement", "eligible": "- Surcoûts d’achat de plants spécifiques permettant in fine de réduire l’utilisation d’intrants chimiques : * 78% du coût d’achat HT des Tray-plants de fraisiers. * 50% du coût d’achat HT des autres plants de fraisiers utilisés de façon annuelle. * 61% du coût d’achat HT de plants d’ail certifiés. * 50% du coût d’achat HT de plants d’échalote certifiés. * pour les autres plants permettant de rédui"}, {"code": "3.4.9", "titre": "Utilisation de produits phytopharmaceutiques de biocontrôle comprenant", "taux": "", "categorie": "Environnement", "eligible": "- Surcoûts d’achat de micro-organismes éligibles listés dans la partie A de l’annexe de la Note de service DGAL/SDSPV/… (liste des produits de biocontrôle, au titre des articles L.253-5 et L.253-7 du code rural et de la pêche maritime) Dans le cas particulier du champignon antagoniste du Sclerotinia (Coniothyrium minitans (nom commercial Contans © ou Feliz © ou Auxitans ©)), le coût total du produ"}, {"code": "3.4.10", "titre": "Soutien à la plantation de plants pérennes contribuant à la diminution de l'utilisation des produits phytosanitaires", "taux": "", "categorie": "Environnement", "eligible": "Critères d’éligibilité : - Achats de plants (y compris porte-greffes) des espèces et variétés dont les caractéristiques de tolérances ou résistances à certains bioagresseurs sont avérées (cf listes annexées à cette mesure) - Investissements liés à l’action de plantation de ces plants éligibles : matériel de palissage et notamment les poteaux, fils, piquets, câbles, releveurs de raisin (fils) … - L"}, {"code": "3.5.1", "titre": "Rotation des cultures légumières", "taux": "", "categorie": "Environnement", "eligible": "Engagement technique : Dépenses de main d’œuvre / prestations éligibles : A présenter avec la demande de paiement : -Coûts de main d’œuvre interne ou externe pour la planification et le conseil lié à la mise en œuvre de la mesure. Note portant sur la réalisation de l'action (nombres d'adhérents concernés, surface -Les coûts d’élaboration et de diffusion du référentiel de l’OP. totale engagée, type"}, {"code": "3.5.2", "titre": "Inter-cultures permettant la lutte contre l'érosion, l’assainissement et", "taux": "", "categorie": "Environnement", "eligible": "En zone vulnérable Dépenses éligibles : -Coût d’achat et de mise en place du mélange d’au moins trois semences d’intercultures - Coûts de mécanisation pour l’implantation, la destruction et l’enfouissement du couvert (intègre la main d’œuvre) Coûts à DEDUIRE obligatoirement : [En zone vulnérable, la dépense éligible correspond au surcoût entre l’itinéraire supérieur décrit ci-contre et l’itinérair"}, {"code": "3.5.3", "titre": "Mise en place d'un paillage végétal, biodégradable ou réutilisable en", "taux": "34%, 25%, 32%", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : - Surcoût d'un paillage biodégradable par rapport à un paillage non - Rapport de contrôle interne établie par le technicien biodégradable (main-d’œuvre incluse) : o 25% du coût d’achat HT pour le melon. o 32% du coût d’achat HT pour la pastèque, la courgette, le potimarron, le potiron, le butternut et autres courges. o 34% du coût d’achat HT pour l’ananas."}, {"code": "3.5.4", "titre": "Mise en place d'un paillage végétal en vergers", "taux": "", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : Conditions particulières : -Investissements et équipements liés à la mise en place d’un paillage végétal en vergers. -Surcoût du paillage végétal par rapport au paillage habituellement utilisé en verger, -Coût total du paillage végétal si la pratique habituelle est l’absence de paillage. -Rapport de contrôle interne établie par le technicien portant sur la"}, {"code": "3.5.5", "titre": "Mise en place d'un enherbement en verger", "taux": "", "categorie": "Environnement", "eligible": "A conserver au siège de l’OP: Engagements techniques : Investissements et équipements liés à la mise en œuvre de la mesure parmi lesquels, matériel spécifique pour - Dans le cas des surcoûts d’achat de plants/semences et L’OP s’engage à conduire la mesure pendant toute la durée restante du PO. l’implantation et l’entretien de couverts, l’enherbement sur de frais de main d’œuvre, le rang et/ou inte"}, {"code": "3.5.6", "titre": "Amélioration du mode de production du compost de champignon", "taux": "", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : Engagements techniques : Investissements de compostage permettant l'amélioration de la qualité du compost. Déduction faite de toute économie d’intrant (par exemple moindre utilisation d'engrais) Attestation détaillée établie par un Améliorer la qualité des composts en tant que substrat organique par un meilleur contrôle des fermentations : Aérobie par souf"}, {"code": "3.5.7", "titre": "Restauration du taux organique par apports de compost", "taux": "3%", "categorie": "Environnement", "eligible": "-L’achat du compost doit se faire dans un rayon proche de l’OP. -Compost et amendements organiques composés de compost en mélange épandus sur parcelles légumières et fruitières, certifié norme NF U44-051. -Compost et amendement organique faisant l’objet d’une autorisation de mise en marché par l’ANSES -Compost et amendement organique faisant l’objet d’un marquage. -Coût d’analyses dans le cadre d’"}, {"code": "3.5.8", "titre": "Utilisation de matériels spécifiques contribuant à la lutte contre l'érosion,", "taux": "", "categorie": "Environnement", "eligible": ". -Matériel améliorant les pratiques culturales : • Matériel pour casser la croûte de battance sur les cultures en place (houe rotative, herse étrille…), • Matériel permettant de limiter l’affinement de surface lors de semis et • matériels de ce type ayant le même objet et équipant les semoirs, Effaceurs de traces de roues pour en limiter les amorces de formation de ravines, • Matériel adapté sur "}, {"code": "3.6.1", "titre": "Pollinisation biologique naturelle", "taux": "", "categorie": "Environnement", "eligible": "Engagements techniques : -Utilisation d’insectes pollinisateurs : achat ou location de ruches d’abeilles, de bourdons. -Achat de pollen pour application manuelle ou mécanique. L’OP s’engage à conduire la mesure pendant toute la durée restante du PO. Remarque : Si les ruches sont propriétés du producteur, en cas de vente du miel, la recette est à déduire de la dépense présentée. Dépenses de main d’"}, {"code": "3.6.2", "titre": "Couvert végétal favorisant la biodiversité dans la parcelle", "taux": "", "categorie": "Environnement", "eligible": "A conserver au siège de l’OP et/ou chez le producteur : Engagements techniques : -Matériel végétal utilisé comme couvert végétal. -Investissements et équipements liés à la mise en place du couvert végétal -Frais de diffusion du référentiel. Dépenses de main d’œuvre / prestations éligibles : -Le référentiel diffusé par l'OP L’OP s’engage à conduire la mesure pendant toute la durée restante du PO -D"}, {"code": "3.6.3", "titre": "Aménagements favorables à la biodiversité", "taux": "", "categorie": "Environnement", "eligible": "A présenter à l’agrément : Aménagements éligibles : -Achat de matériel végétal pour la constitution des aménagements éligibles listés ci-contre. Dans le cas d’une nouvelle implantation, fournir un diagnostic -Investissements spécifiques liés à l’implantation et à l’entretien (matériels pour la préparation des sols, la plantation, la taille, etc.) des aménagements éligibles listés ci-contre. -Achat"}, {"code": "3.6.4", "titre": "Création de zones de régulation écologique (ZRE)", "taux": "", "categorie": "Environnement", "eligible": "et dépenses éligibles : A présenter avec la demande de paiement : -Achat de matériel végétal pour la création de zones Rapport du technicien relatif au respect des de régulation écologique. engagements ci-contre. -Investissements spécifiques liés à la mise en place des zones de régulation écologique. Dépenses de main d’œuvre / prestations éligibles : Coût de personnel interne ou externe spécifique"}, {"code": "3.6.5", "titre": "Aménagements pour la qualité des paysages et l'intégration paysagères", "taux": "", "categorie": "Environnement", "eligible": "A présenter à l’agrément : Engagement technique : Investissements spécifiques liés à la mise en place de la mesure. -Le diagnostic préalable respectant les engagements techniques de la mesure 3.11.2. Mise en œuvre d’un plan d’aménagement adapté favorisant la qualité et la diversité des paysages (exemple : murets, Dépenses de main d’œuvre / prestations éligibles : -Coût de personnel interne ou exte"}, {"code": "3.6.6", "titre": "Favoriser la préservation des variétés végétales menacées de disparition", "taux": "", "categorie": "Environnement", "eligible": "A présenter avec la demande de paiement : -Achat de variétés locales de fruits et légumes menacées de disparition indiquées dans la liste détaillée des Programmes de Développement Ruraux Régionaux (PDRR) Dépenses de main d’œuvre / prestations éligibles : -Coût de personnel interne ou externe spécifiquement lié à la mise en place de la mesure -Liste des bénéficiaires et des cultures et surfaces con"}, {"code": "3.6.8", "titre": "Agroforesterie", "taux": "", "categorie": "Environnement", "eligible": "-Matériel végétal acheté pour mettre en œuvre la mesure, -Investissements (y compris équipements) spécifiquement liés à la mise en œuvre de la mesure et à l’entretien. Dépenses de main d’œuvre / prestations éligibles : -Coût supplémentaire de personnel interne ou externe (prestation de service) spécifiquement lié à l’ingénierie, A présenter avec la demande de paiement : Note descriptive des action"}, {"code": "3.7.1", "titre": "Actions en faveur d'une économie et/ou d'une optimisation de la", "taux": "7%, 15%", "categorie": "Environnement", "eligible": "A présenter à l’agrément : Engagements techniques: Equipement de récupération de CO2, Equipement en compteurs à calories et/ou compteurs électriques, Equipement des chaudières en réserve d’eau chaude (open buffer), chaudière à condensation, • Equipement en écrans thermiques, • Logiciel de pilotage climatique permettant notamment de moduler les consignes de température, • Investissements spécifique"}, {"code": "3.7.2", "titre": "Actions en faveur du développement des énergies renouvelables", "taux": "", "categorie": "Environnement", "eligible": "A présenter à l’agrément : Dépenses inéligibles : Le diagnostic énergie-GES préalable. -Les machines de récolte, semoirs, planteuses... fonctionnant avec une énergie alternative (biogaz, hydrogène, électrique ...) -Installation de dispositifs utilisant les énergies renouvelables dont : • • Matériaux, équipements et matériels pour l’installation d’un chauffe-eau solaire thermique pour la production"}, {"code": "3.7.3", "titre": "Investissements de conservation par réfrigération utilisant des fluides à", "taux": "", "categorie": "Environnement", "eligible": "- Conditions particulières : Investissements dans des équipements de conservation par Le règlement UE 517/2014 (abrogé par le règlement UE 2024/573) met en réfrigération qui fonctionnent avec des fluides frigorigènes place la disparition progressive des fluides HFC(HydroFluroCarbone) ayant un PRP (= PRP ou Global Warming Potential = GWP) > 2500. ayant un PRP (Potentiel de Réchauffement Planétaire "}, {"code": "3.7.4", "titre": "Serres et abris froids ou chauffés avec une énergie renouvelable ou de récupération", "taux": "", "categorie": "Environnement", "eligible": "Serres froides et ou chauffées avec une énergie renouvelable ou de récupération : Coûts de construction pour la création, extension, ou modernisation des tunnels, serres dîtes chenilles thermiques \u0014, serres froides, serres destinées à être chauffées avec une énergie renouvelable au sens de l’article L.211-2 du code de l’énergie ou avec une énergie de récupération au sens du bulletin officiel BOI-T"}, {"code": "3.8.1", "titre": "Gestion environnementale des déchets verts, à l’exploitation et/ou en", "taux": "", "categorie": "Environnement", "eligible": "A présenter à l’agrément : Déchets éligibles : -Diagnostic/étude préalable. Ce diagnostic -Création d’aire de compostage, doit comporter une analyse de la situation -Déchets végétaux, coproduits et sousproduits… -Achat de petits matériels de suivi (thermomètre, tests Rottegrad, tests Solvita,…) initiale (inventaire des déchets, examen des procédures de gestion des déchets, des Types de valorisatio"}, {"code": "3.8.2", "titre": "Gestion environnementale des déchets non verts", "taux": "", "categorie": "Environnement", "eligible": "A présenter à l’agrément : -Diagnostic/étude préalable. Ce diagnostic doit Déchets éligibles : -Installations et équipements spécifiquement liés à la gestion des déchets. Ex : benne, machine à récupérer et nettoyer les plastiques… -Coûts d’enlèvement et de traitement des déchets par une station de valorisation ou de recyclage des déchets. -Coûts d’enlèvement des déchets industriels Banals (DIB). -"}, {"code": "3.8.3", "titre": "Projet global de collecte sélective des déchets verts et non verts au cours", "taux": "", "categorie": "Environnement", "eligible": "A présenter à l’agrément : Déchets éligibles : -Installations et équipements de tri, de collecte, d’acheminement et de stockage des déchets -Diagnostic/étude préalable. Ce diagnostic doit comporter une analyse de la situation initiale (inventaire des déchets, -Déchets verts et non verts résultants du process de préparation du produit en station. produits au cours des phases de traitements des prod"}, {"code": "3.8.4", "titre": "Equipements permettant le conditionnement avec des emballages", "taux": "", "categorie": "Environnement", "eligible": "Condition particulière : Equipements de conditionnement (emballeuses) utilisant -L’équipement présenté doit être destiné à l’emballage des fruits et légumes frais. des emballages écologiques biodégradable et/ou sans matière plastique. *La matière plastique est définie à l'article D. 541-330 du code de l'environnement). -L’équipement présenté doit remplacer un équipement existant qui utilise des em"}, {"code": "3.8.5", "titre": "Gestion environnementale des déchets verts pour le cas de la valorisation", "taux": "", "categorie": "Environnement", "eligible": "Cas de valorisation par méthanisation : A présenter à l’agrément : Déchets éligibles : -Diagnostic/étude préalable. -Sondes de contrôle de température -Installations et équipements spécifiquement liés à la gestion des déchets. Dépenses de main d’œuvre / prestations éligibles : Ce diagnostic doit comporter une analyse de la situation initiale (inventaire des déchets, examen des -Coût de personnel i"}, {"code": "3.9.1", "titre": "Transport interne : Moyens de transport alternatifs au transport routier,", "taux": "", "categorie": "Environnement", "eligible": "Coûts supplémentaires transport routier comparés aux frais de ENGAGEMENTS TECHNIQUES diagnostic conforme aux spécifications de la mesure 3.11.2 Utilisation d'un moyen de transport alternatif (par rail ou voie fluviale ou autres) au transport routier traditionnel"}, {"code": "3.9.2", "titre": "Transport externe : Moyens de transport alternatifs au transport routier", "taux": "", "categorie": "Environnement", "eligible": "Coûts supplémentaires transport routier comparés aux frais de ENGAGEMENTS TECHNIQUES diagnostic conforme aux spécifications de la mesure 3.11.2 Utilisation d'un moyen de transport alternatif (par rail ou voie fluviale) au transport routier traditionnel 170"}, {"code": "3.11.1", "titre": "Appui technique, conseil, analyses et animation collective liés à une ou", "taux": "", "categorie": "Environnement", "eligible": "Dépenses de main d’œuvre / prestations éligibles : A présenter avec la demande de paiement : Remarque : -Coût de personnel qualifié interne ou externe spécifiquement lié la réalisation de l’appui technique, -Rapport de missions détaillé du du conseil, de l’animation et des analyses nécessaires à la mise en œuvre d'une ou plusieurs mesures technicien de l’OP ou du prestataire indiquant, entre autre"}, {"code": "3.11.2", "titre": "Diagnostics environnemental et agroforestier d'exploitation", "taux": "", "categorie": "Environnement", "eligible": "Dépenses de main d’œuvre / prestations éligibles : A présenter avec la demande de paiement :  Cas du diagnostic environnemental : Coût supplémentaire de personnel qualifié interne (technicien à minima) ou externe (prestataire) pour la réalisation du diagnostic nécessaire à la mise en œuvre d’une (des) mesure(s) environnementale(s) du programme opérationnel.  Cas du plan de gestion agroforestier "}, {"code": "3.11.3", "titre": "Formation spécifique aux mesures environnementales du PO", "taux": "", "categorie": "Environnement", "eligible": "Dépenses de main d’œuvre / prestations éligibles : A présenter avec la demande de paiement : Remarque : Coût de personnel qualifié interne ou externe (prestataire) relatif à la formation nécessaire à la Rapport de missions détaillé du technicien mise en œuvre d’une (des) mesure(s) environnementale(s) du programme opérationnel. de l’OP ou du prestataire indiquant, entre autres : -Indemnités journal"}, {"code": "3.11.5", "titre": "Obtention et/ou maintien de démarches reconnues à caractère", "taux": "", "categorie": "Environnement", "eligible": "Liste des certifications et démarches éligibles : -Investissements et dépenses rendus obligatoires par les certifications éligibles A présenter avec la demande de paiement : Compte rendu de la réalisation de l’action ou 3 reconnues par le Ministère de l’Agriculture et de l’Alimentation en vertu de l’article D617-5 - Certificat ou attestation de conformité. du Code rural et de la pêche maritime, - "}, {"code": "3.11.6", "titre": "Expérimentation/recherche à caractère environnemental lorsqu’une", "taux": "", "categorie": "Environnement", "eligible": "Dépenses de main d’œuvre / prestations éligibles : A présenter à l’agrément : Critères d’éligibilités : -Preuve du caractère environnemental de l’expérimentation/recherche La mesure doit correspondre à des actions contribuant à la protection de l'environnement -Protocole d’expérimentation/recherche Obligation de diffusion des résultats auprès des adhérents. -Achat de matériel prévu d’expérimentati"}, {"code": "4.15", "titre": "Coûts de stockage exceptionnel", "taux": "", "categorie": "Commercial / Gestion", "eligible": "et dépenses éligibles : Coût de location relatif aux A présenter à l’agrément : Les frais de personnel se rapportant à l’entrée et à la -Exposé de la stratégie mise en œuvre capacités de stockage supplémentaire par rapport aux disponibilités des campagnes précédentes. sortie des produits des zones de stockage (coût de fonctionnement). A présenter avec la demande de paiement : -Preuve que le besoin"}, {"code": "4.16", "titre": "Préparation commerciale, informatisation et gestion des stocks", "taux": "", "categorie": "Commercial / Gestion", "eligible": "A présenter à l’agrément : Dépenses inéligibles : -Achat et développement de logiciels nécessaires à la préparation commerciale et la gestion de stock. -Dans le cas de dépenses de main d’œuvre/prestations : éléments d’explication permettant de justifier les améliorations attendues en termes de commercialisation. - - L’informatisation (logiciels ou matériels) des services comptables et administrati"}, {"code": "4.17", "titre": "Création et aménagement d’un département commercial, d’un bureau ou", "taux": "", "categorie": "Commercial / Gestion", "eligible": "-Construction et aménagement d’un département ou d’un bureau commercial: ex : agrandissement de bâtiments -Location de bureau, de point de vente… A présenter avec la demande de paiement : -Note sur les actions mises en œuvre et les résultats atteints. Dépenses inéligibles : - Les dépenses liées à la création d’un bureau commercial ne pourront pas être prises en compte au-delà de la 5ième année sui"}, {"code": "4.22", "titre": "Coûts administratifs et juridiques de la restructuration des OP ou de la", "taux": "", "categorie": "Commercial / Gestion", "eligible": "A présenter avec la demande de paiement : Dépenses inéligibles : Coût administratifs et juridiques des fusions ou acquisitions d’OP. Coût administratifs et juridiques de création d’OP transnationales ou d’association transnationale d’OP. Exemple de coûts éligibles : -Copies des comptes d’Assemblée Générale. rendus Coût de la restructuration des filiales point 2.c de l’annexe III du R(UE) 2017/891."}, {"code": "4.23", "titre": "Création de logo commercial", "taux": "", "categorie": "Commercial / Gestion", "eligible": "Coût de création de logo. A présenter avec la demande de paiement : - Note sur les actions réalisées et les résultats atteints. A conserver au siège de l’OP et/ou chez le producteur :"}, {"code": "4.26", "titre": "Politique de programmation des cultures et des calendriers de production", "taux": "", "categorie": "Commercial / Gestion", "eligible": "Dépenses de main d’œuvre / prestations éligibles : A présenter avec la demande de paiement : Coût des études préalables : enquêtes sur les superficies et prévisionnel de récolte. Coût des traitements l’information. et synthèse de Note de synthèse reprenant par exemple les productions et L’objet de cette mesure est de permettre aux OP producteurs concernés, les modalités de planification des produc"}, {"code": "5.7", "titre": "Expérimentation/recherche lorsque qu’une diffusion des résultats auprès", "taux": "", "categorie": "Recherche / Expérimentation", "eligible": "A présenter avec l’agrément : Types d’investissements et dépenses éligibles : -Achat de matériel / outils et/ou logiciels prévu par le protocole d’expérimentation / recherche. - L’intégralité des coûts nécessaires à la mise en place de l’expérimentation/recherche. -Création et mise en place de solutions innovantes en substitution aux emballages en plastique. Dépenses de main d’œuvre / prestations "}, {"code": "5.8", "titre": "Amélioration génétique, essais de résistance aux maladies", "taux": "", "categorie": "Recherche / Expérimentation", "eligible": "A présenter avec la demande de paiement : Critères d’éligibilités : Achat de matériel prévu par le protocole. Dépenses de main d’œuvre / prestations éligibles : Frais de personnel de l’OP ou de prestation nécessaires à la mise en œuvre de la mesure. Note de synthèse sur l’expérimentation/recherche. A conserver au siège de l’OP et/ou chez le producteur : Convention de recherche avec l'organisme de "}, {"code": "5.9", "titre": "Création de nouveaux produits biologiques", "taux": "", "categorie": "Recherche / Expérimentation", "eligible": "A présenter avec l’agrément : -Abonnements à des revues spécialisées en culture biologique et technique (avant-garde). -Achat de matériel pour la création de produits biologiques -Coût des actions expérimentales de développement réalisé sur un nouveau produit. Dépenses de main d’œuvre / prestations éligibles : -Protocole d’expérimentation/recherche A présenter avec la demande de paiement: -Note de"}, {"code": "5.10", "titre": "Participation à des salons et voyages d’études destinés à l’expérimentation,", "taux": "", "categorie": "Recherche / Expérimentation", "eligible": "A présenter avec la demande de paiement: Dépenses inéligibles : - - Coûts de présence et/ou participation dans - A) Protocole de recherche et des salons destinés à l’expérimentation, la recherche et l’innovation. développement dans lequel s’inscrit ce voyage/salon si en lien avec une Coûts de présence et/ou participation à des autre action de recherche de l’OP OU voyages d’études - Assurance annul"}, {"code": "5.12", "titre": "Prise de parts sociales ou participations dans des sociétés de recherche et", "taux": "90%, 33%", "categorie": "Recherche / Expérimentation", "eligible": "SPECIFIQUES Parts sociales ou participations dans des sociétés de recherche et innovation, contribuant à la réalisation des objectifs du PO. Dépenses de main d'œuvre/prestation éligibles: Frais de main d'œuvre et/ou de prestation de conseil nécessaires à la réalisation de cette acquisition. A présenter avec la demande de paiement : Conditions d’éligibilité : Note expliquant en quoi l’opération réa"}, {"code": "6.1", "titre": "Retraits hors distribution gratuite", "taux": "", "categorie": "Retraits / Crises", "eligible": "Dépenses éligibles : La dépense opérationnel inscrite est au constituée fonds par la compensation financière, qui est calculée sur la base du volume éligible retiré du marché et validé après le contrôle sur place le cas échéant. le(s) certificat(s) de retrait (comportant le compte-rendu du contrôle physique) - lorsque la destination n’est pas la destruction par épandage, le ou les certificat(s) de"}, {"code": "6.2", "titre": "Retraits distribution gratuite", "taux": "", "categorie": "Retraits / Crises", "eligible": "Dépenses éligibles : - le ou les certificat(s) de retrait Remarque : dépense inscrite au fonds opérationnel est constituée par la compensation financière, qui est (comportant, le cas échéant, le compte-rendu physique) du contrôle calculée sur la base du volume éligible - le ou les certificats de prise en retiré du marché et validé après le contrôle sur place le cas échant. charge signé(s) par le o"}, {"code": "6.3", "titre": "Récolte en vert", "taux": "", "categorie": "Retraits / Crises", "eligible": "- Le ou les certificat(s) de récolte en Dépenses éligibles : vert comportant un compte rendu du ou des contrôles physiques Remarque La dépense inscrite au fonds opérationnel est La compensation financière est attribuée par l’OP au producteur constituée par la compensation financière qui est calculée sur la base de la surface éligible ayant fait l’objet d’une récolte en vert. dont une partie des pr"}, {"code": "6.4", "titre": "Non récolte", "taux": "", "categorie": "Retraits / Crises", "eligible": "Dépenses éligibles : Remarque : La dépense inscrite au fonds opérationnel est constituée par la compensation financière qui La compensation financière est attribuée par l’OP au producteur dont une partie des produits a fait l’objet d’une opération de non récolte. Pour plus d’informations sur la mise en œuvre de est calculée sur la base de la surface éligible cette mesure, se référer à la notice de"}, {"code": "6.5", "titre": "Promotion et communication dans le cadre de la prévention et/ou de la", "taux": "0.5%", "categorie": "Retraits / Crises", "eligible": "A fournir pour l’agrément du projet: Dépenses éligibles : Dans le cas de la prévention de crise : Conditions : Description des crises anticipées, par produits Cette mesure peut seulement être mise en œuvre si une action de Achat, prestations de service ou frais Démonstration du risque de crise potentielle en se de personnel pour la mise en œuvre d’actions de promotion et communication. basant sur "}, {"code": "6.6", "titre": "Actions de formations à la prévention et/ou à la gestion de crise", "taux": "", "categorie": "Retraits / Crises", "eligible": "A fournir pour l’agrément du projet: Dépenses éligibles : Achat, prestations de service ou frais de personnel pour la mise en œuvre d’actions commerciales, de formation à la communication, à la négociation commerciale, de conseils en communication et mercatique …... La mesure s’inscrit dans la prévention et la gestion d’aléas de marché Éléments d’explication sur le lien entre la formation prévue e"}, {"code": "6.7", "titre": "Action assurance récolte", "taux": "", "categorie": "Retraits / Crises", "eligible": "Dépenses éligibles : A présenter avec la demande de paiement : Conditions d’éligibilité Seuls les contrats présentés par les compagnies d’assurance retenues par l’OP Contrats d’assurance avec : sont éligibles mais le contrat ne doit pas obligatoirement être signé par l’OP. cultures éligibles contre des risques éligibles : Le nom des producteurs concernés les pertes causées par des météorologiques "}, {"code": "6.8", "titre": "Participation à la création et au décaissement des fonds de mutualisation", "taux": "70%", "categorie": "Retraits / Crises", "eligible": "JUSTIFICATIFS OBLIGATOIRES Dépenses éligibles : A présenter avec la demande d’agrément : - Frais administratifs et bancaires liés à la création du fonds de mutualisation ; - - Somme des compensations versées sur l’année donnée, conformément au règlement d’utilisation du fonds établi par l’OP et validé par FranceAgriMer. Règlement d’utilisation du fonds de mutualisation, précisant notamment les mod"}, {"code": "6.9", "titre": "Replantation de vergers après un arrachage obligatoire pour raisons", "taux": "20%", "categorie": "Retraits / Crises", "eligible": "Dépenses éligibles A présenter avec la demande de paiement : Conditions d’éligibilité : Constat de plantation précisant les parcelles concernées et Conformément à l’article 16 du règlement leur localisation, attesté par le technicien et signé par le Président de l’OP 2021/126, l’OP doit respecter les dispositions du règlement (UE) 2016/2031. Le cas échéant (voir mesure 2.17) la facture doit mentio"}, {"code": "6.10", "titre": "Investissements liés à la gestion des volumes dans le cadre de la PGC", "taux": "", "categorie": "Retraits / Crises", "eligible": "A fournir pour l’agrément du projet : Remarque : Note expliquant présentées en quoi viennent les actions renforcer une commercialisation de base observée hors période de crise A présenter avec la demande de paiement : Coût de location relatif aux capacités de stockage Preuve que l’investissement est de nature à supplémentaire pour prévenir ou faire face à une situation de crise. prévenir efficacem"}, {"code": "7.1", "titre": "Formation à l'utilisation de logiciels et des matériels associés", "taux": "", "categorie": "Autre", "eligible": "Types des dépenses éligibles : A présenter avec la demande de paiement : Dépenses inéligibles : Frais de formation du personnel de l’OP et des producteurs liés à la mise en œuvre d'une ou plusieurs mesures de la stratégie nationale : *pour l’utilisation de logiciels, - Liste des personnes - bénéficiaires (salariés et/ou producteurs) Contenu de la formation *pour l’utilisation du matériel associé L"}, {"code": "7.2", "titre": "Formation et appui technique", "taux": "", "categorie": "Autre", "eligible": "Types des dépenses éligibles : A présenter avec la demande de paiement: Remarque : Frais de formation des producteurs et des salariés de l’OP pour la mise en œuvre d'une ou plusieurs mesures de la stratégie nationale : Liste des personnes (producteurs ou salariés) * Formation dispensée par du personnel de l’OP. - Contenu de la formation ou du conseil * Formation dispensée par des prestataires. - R"}, {"code": "8.2", "titre": "Investissements informatiques et télématiques, développement ou", "taux": "", "categorie": "Autre", "eligible": "A présenter avec la demande de paiement : Dépenses inéligibles : Matériel informatique liés à une ou plusieurs mesures de la stratégie nationale. Exemple : serveurs, ordinateurs, GPS, etc.… Note explicative sur les objectifs des investissements réalisés Achat, développement ou adaptation de logiciels L’informatisation (logiciels ou matériels) des services comptables et administratifs en tant que t"}, {"code": "8.3", "titre": "Investissement en actions de sociétés contribuant à la réalisation des", "taux": "90%", "categorie": "Autre", "eligible": "JUSTIFICATIFS SPECIFIQUES Achat d’actions d’une société contribuant à la réalisation des objectifs du PO Dépenses de main d'œuvre/prestation éligibles: Frais de main d'œuvre et/ou de prestation de conseil nécessaires à la réalisation de cette acquisition. Conditions d’éligibilité : A présenter avec la demande de paiement : Note expliquant en quoi l’opération réalisée contribue aux objectifs du PO "}, {"code": "8.6", "titre": "Lutte contre les nuisances sonores et olfactives", "taux": "", "categorie": "Autre", "eligible": "A présenter à l’agrément : Critères d’éligibilités : Diagnostic comportant une analyse de la situation initiale (équipements existants, L’OP doit s’engager à réaliser des aménagements cohérents avec le résultat du diagnostic, dans la limite de faisabilité technico-économique. Matériel et équipements niveau des nuisances sonores ou olfactives) Dépenses de main d’œuvre / prestations éligibles : et u"}, {"code": "8.8", "titre": "Etudes et diagnostics", "taux": "", "categorie": "Autre", "eligible": "JUSTIFICATIFS REMARQUES A fournir pour l’agrément du projet: Dépenses inéligibles : Note expliquant l’objet de l’étude, Dépenses éligibles : l’objectif recherché, et les modalités de réalisation de l’étude (calendrier, méthodologie …). Obligation : A présenter avec la demande de paiement: Les études devront obligatoirement être initiées par l’OP, et non par les producteurs. Coûts des études et dia"}, {"code": "9.1", "titre": "Obtention et/ou maintien de certifications/labellisations SST, RSE ou", "taux": "", "categorie": "Autre", "eligible": "Dépenses et prestations éligibles : A présenter avec la demande d’aide : En matière de SST, l’éligibilité des certifications/labellisations est conditionnée aux trois - Frais de personnel de l’OP, sur l’exploitation ou de prestation de service pour la mise en place et le suivi des cahiers des charges en station ou sur les exploitations (y compris le diagnostic, le conseil et la formation). - Inves"}, {"code": "9.2", "titre": "Évaluation et amélioration des conditions de santé et de sécurité au travail", "taux": "", "categorie": "Autre", "eligible": "Dépenses éligibles : A présenter avec la demande de paiement : Exigences réglementaires : - Prestation de service pour la réalisation d’une étude préalable d’évaluation des risques et des besoins en matière de santé-sécurité au travail (cf cahier des charges de l’étude en annexe) - Achats/investissements (matériels ou immatériels) et/ou prestations de service préconisés au terme de l’étude ; - Rap"}];
+var referentiel=[];
+
+function loadReferentiel(){
+  try{var s=localStorage.getItem(REF_KEY);if(s){referentiel=JSON.parse(s);return;}}catch(e){}
+  referentiel=JSON.parse(JSON.stringify(REFERENTIEL_DEFAULT));
+}
+function saveReferentiel(){try{localStorage.setItem(REF_KEY,JSON.stringify(referentiel));}catch(e){}}
+
+var CAT_COLORS={'Investissements':'#1565C0','Production / Qualite':'#2E7D32','Environnement':'#1B5E20','Commercial / Gestion':'#EF6C00','Recherche / Experimentation':'#6A1B9A','Retraits / Crises':'#C62828'};
+
+function renderRef(){
+  var search=(document.getElementById('ref-search').value||'').toLowerCase();
+  var cat=document.getElementById('ref-cat').value;
+  var filtered=referentiel.filter(function(m){
+    return (!search||m.code.toLowerCase().includes(search)||m.titre.toLowerCase().includes(search)||(m.eligible||'').toLowerCase().includes(search))
+      &&(!cat||m.categorie===cat||m.categorie===(cat.replace('Qualite','Qualit\u00e9').replace('Experimentation','Exp\u00e9rimentation')));
+  });
+  document.getElementById('ref-count').textContent=filtered.length+' / '+referentiel.length+' mesures';
+  document.getElementById('ref-tbody').innerHTML=filtered.map(function(m){
+    var col=CAT_COLORS[m.categorie]||'#6b7280';
+    var elig=(m.eligible||'').substring(0,130);
+    if((m.eligible||'').length>130)elig+='...';
+    return '<tr><td><b style="color:var(--vert-f)">'+m.code+'</b></td>'
+      +'<td style="font-size:12px">'+m.titre+'</td>'
+      +'<td><span style="font-size:10px;padding:2px 6px;border-radius:10px;background:#f0f4f8;color:'+col+';font-weight:600">'+m.categorie+'</span></td>'
+      +'<td style="text-align:center;font-weight:600;color:var(--vert-f)">'+(m.taux||'&mdash;')+'</td>'
+      +'<td style="font-size:11px;color:#555">'+elig+'</td></tr>';
+  }).join('')||'<tr><td colspan="5" class="note">Aucune mesure.</td></tr>';
+}
+
+var RFDROP=document.getElementById('ref-drop');
+RFDROP.addEventListener('click',function(){document.getElementById('ref-file').click();});
+RFDROP.addEventListener('dragover',function(e){e.preventDefault();RFDROP.classList.add('over');});
+RFDROP.addEventListener('dragleave',function(){RFDROP.classList.remove('over');});
+RFDROP.addEventListener('drop',function(e){e.preventDefault();RFDROP.classList.remove('over');var f=e.dataTransfer.files[0];if(f)importRefPdf(f);});
+document.getElementById('ref-file').addEventListener('change',function(e){var f=e.target.files[0];if(f)importRefPdf(f);});
+
+function importRefPdf(file){
+  var status=document.getElementById('ref-import-status');
+  status.textContent='Lecture du PDF...';
+  loadPdfJs(function(){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var data=new Uint8Array(e.target.result);
+      pdfjsLib.getDocument({data:data}).promise.then(function(pdf){
+        status.textContent='Extraction du texte ('+pdf.numPages+' pages)...';
+        var pp=[];
+        for(var i=1;i<=Math.min(pdf.numPages,250);i++){
+          pp.push(pdf.getPage(i).then(function(page){
+            return page.getTextContent().then(function(tc){return tc.items.map(function(item){return item.str;}).join(' ');});
+          }));
+        }
+        Promise.all(pp).then(function(pages){
+          var txt=pages.join('\n');
+          var parsed=parseRefFromText(txt);
+          if(parsed.length>5){
+            referentiel=parsed;
+            saveReferentiel();
+            document.getElementById('ref-version').textContent=file.name.replace('.pdf','').substring(0,25);
+            renderRef();
+            if(typeof fillSelects==='function')fillSelects();
+            status.textContent=parsed.length+' mesures extraites et sauvegardees.';
+            RFDROP.innerHTML='Charge : <b>'+file.name+'</b> &mdash; <span class="note">Glissez un autre PDF pour mettre a jour</span>';
+          } else {
+            status.textContent='Extraction insuffisante ('+parsed.length+' mesures). Verifiez le fichier PDF.';
+          }
+        });
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseRefFromText(text){
+  var catMap={'1':'Investissements','2':'Production / Qualite','3':'Environnement','4':'Commercial / Gestion','5':'Recherche / Experimentation','6':'Retraits / Crises'};
+  var seen={};var arr=[];
+  var re=/MESURE\s+([\d\.]+)\s*[:\-]\s*([^\n]{5,150})/g;
+  var m;
+  while((m=re.exec(text))!==null){
+    var code=m[1].trim();
+    var titre=m[2].trim().replace(/\.{3,}.*$/,'').trim();
+    if(!seen[code]&&titre.length>5){
+      seen[code]=true;
+      var cat=catMap[code.split('.')[0]]||'Autre';
+      var ctx=text.substring(m.index,m.index+600);
+      var tm=ctx.match(/(\d+(?:[,.]\d+)?)\s*%/g);
+      arr.push({code:code,titre:titre,taux:tm?tm[0]:'',categorie:cat,eligible:ctx.substring(titre.length,titre.length+250).replace(/\s+/g,' ').trim()});
+    }
+  }
+  arr.sort(function(a,b){return a.code.localeCompare(b.code,undefined,{numeric:true});});
+  return arr;
+}
+
+function exportRefCSV(){
+  var rows=referentiel.map(function(m){return [m.code,'"'+m.titre+'"',m.categorie,m.taux||'',(m.eligible||'').replace(/"/g,"'")].join(';');});
+  dl('referentiel_PO.csv','Code;Intitule;Categorie;Taux FO;Eligible\n'+rows.join('\n'));
+}
+function exportRefJSON(){
+  var blob=new Blob([JSON.stringify(referentiel,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='referentiel_PO.json';document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+loadReferentiel();
+renderRef();
+// Re-remplir les selects de mesures maintenant que le referentiel (95 mesures) est charge
+if(typeof fillSelects==='function')fillSelects();
+// ======== FIN REFERENTIEL ========
+
+</script>
+</body>
+</html>
